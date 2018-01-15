@@ -1,7 +1,7 @@
 import ast
-import json
-import re
 import logging
+import re
+from typing import Any, Callable
 
 from bs4 import BeautifulSoup
 from requests import post
@@ -12,25 +12,43 @@ from turns.models import Sentence, Slot, Intent, IntentTemplate, Dialogue, UserP
 logger = logging.getLogger('turns')
 
 
+def update_sentiment_for_all_sentences(override=False):
+    _update_sentence_generic(update_sentiment_for_single_sentence, 'sentiment', override)
+
+
+def update_intents_for_all_sentences(override=False):
+    _update_sentence_generic(update_intent_for_single_sentence, 'intent', override)
+
+
+def update_reward_for_all_sentences(override=False):
+    _update_sentence_generic(update_reward_for_single_sentence, 'reward', override)
+
+
+def _update_sentence_generic(update_method: Callable[[Sentence, bool], Any], field_name, override=False):
+    touched = 0
+    skipped = 0
+    for sentence in Sentence.objects.all():
+        if override or sentence.sentiment is None:
+            new_val = update_method(sentence, override)
+            logger.debug("New {} for sentence '{}' is {}".format(field_name,
+                                                                 sentence.value,
+                                                                 new_val))
+            touched += 1
+        else:
+            skipped += 1
+            logger.debug("Skipping sentence '{}'".format(sentence))
+    logger.info(
+        "Touched {} and skipped {} sentences while updating {}s for them.".format(touched,
+                                                                                  skipped,
+                                                                                  field_name))
+
+
 def update_sentiment_for_single_sentence(sentence, override=False):
     if sentence.sentiment is None or override:
         sentiment = crawl_single_sentiment(sentence.value)
         sentence.sentiment = sentiment
         sentence.save()
-
-
-def update_sentiment_for_all_sentences(override=False):
-    touched = 0
-    skipped = 0
-    for sentence in Sentence.objects.all():
-        if override or sentence.sentiment is None:
-            update_sentiment_for_single_sentence(sentence=sentence, override=override)
-            touched += 1
-            logger.debug("New sentiment for sentence '{}' is {}".format(sentence.value, sentence.sentiment))
-        else:
-            skipped += 1
-            logger.debug("Skipping sentence '{}'")
-    logger.info("Touched {} and skipped {} sentences while updating intents for them.".format(touched, skipped))
+    return sentence.sentiment
 
 
 def crawl_single_sentiment(text):
@@ -77,19 +95,7 @@ def update_intent_for_single_sentence(sentence: Sentence, override=False):
         intent_name = sentence.intent.template.name if sentence.intent is not None else 'unknown_intent'
         logger.debug("New intent for sentence '{}' is {}".format(sentence.value, intent_name))
         sentence.save()
-
-
-def update_intents_for_all_sentences(override=False):
-    touched = 0
-    skipped = 0
-    for sentence in Sentence.objects.all():
-        if sentence.intent is None or override:
-            update_intent_for_single_sentence(sentence, override)
-            touched += 1
-        else:
-            logger.debug("Skipping sentence '{}'".format(sentence.value))
-            skipped += 1
-    logger.info("Touched {} and skipped {} sentences while updating intents for them.".format(touched, skipped))
+    return sentence.intent.template.name if sentence.intent is not None else 'commons.unknown'
 
 
 def update_user_profile_for_single_dialogue(dialogue: Dialogue, override=False):
@@ -117,9 +123,10 @@ def get_user_profile_for_sentence(sentence: Sentence, previous: UserProfile):
         if intent.template.name.startswith('userprofile.response'):
             updated_profile = duplicate_user_profile_no_save(previous)
             dispatch_profile_changing_intent(updated_profile, intent)
-            logger.debug('User profile updated after seeing sentence "{}" ({}) to {}'.format(sentence,
-                                                                                             sentence.intent.template.name,
-                                                                                             updated_profile))
+            logger.debug('User profile updated after seeing sentence "{}" ({}) to {}'
+                         .format(sentence,
+                                 sentence.intent.template.name,
+                                 updated_profile))
             updated_profile.save()
             return updated_profile
     return previous
@@ -204,3 +211,19 @@ def get_user_name_from_intent(intent: Intent):
 def duplicate_user_profile_no_save(user_profile: UserProfile):
     user_profile.id = None
     return user_profile
+
+
+def update_reward_for_single_sentence(sentence: Sentence, override=False):
+    if override or sentence.reward is None:
+        intent_name = sentence.intent.template.name if sentence.intent is not None else 'common.unknown'
+        sentence.reward = reward_for_reaction(intent_name)
+    return sentence.reward
+
+
+def reward_for_reaction(intent_name):
+    return {
+        'reaction.content.positive': .5,
+        'reaction.content.negative': -.25,
+        'common.thanks': .25,
+        'reaction.content.not_interested': -.75
+    }.get(intent_name, .0)

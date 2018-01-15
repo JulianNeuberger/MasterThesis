@@ -1,11 +1,15 @@
+import logging
+
 from django.conf import settings
 
-from turns.models import Dialogue, Sentence
 from events.listener import SlackEventsListener, SlackMessageEvent
+from turns.models import Dialogue, Sentence
 
 DIALOG_FLOW_TOKEN = getattr(settings, 'DIALOG_FLOW_TOKEN', None)
 SLACK_VERIFICATION_TOKEN = getattr(settings, 'SLACK_VERIFICATION_TOKEN', None)
 SLACK_BOT_USER_TOKEN = getattr(settings, 'SLACK_BOT_USER_TOKEN', None)
+
+logger = logging.getLogger('data')
 
 
 class Logger(SlackEventsListener):
@@ -20,9 +24,9 @@ class Logger(SlackEventsListener):
             # only allow 1-1 turns
             sentence = Sentence(value=event.message, said_by=event.user_name, said_in=dialogue)
             sentence.save()
-            print('saved sentence "{}" to dialogue "{}"'.format(sentence, dialogue))
+            logger.info('Saved new sentence "{}" said in dialogue "{}"'.format(sentence, dialogue))
         else:
-            print('sentence is from same person as the one before, skipping!')
+            # TODO: shouldn't this be logged, too and just filtered out while pre processing?
+            logger.info('Sentence is from same person as the one before, not saving it!')
 
-
-#Client = SlackClient(SLACK_BOT_USER_TOKEN)
+# Client = SlackClient(SLACK_BOT_USER_TOKEN)

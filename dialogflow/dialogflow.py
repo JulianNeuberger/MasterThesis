@@ -1,8 +1,11 @@
 import json
+import logging
 from abc import abstractmethod
 
 import requests
-from requests import codes, HTTPError
+from requests import HTTPError
+
+logger = logging.getLogger('dialogflow')
 
 
 class RestEndpoint:
@@ -20,7 +23,12 @@ class RestEndpoint:
         try:
             response.raise_for_status()
         except HTTPError:
-            print(response.text)
+            logger.warning(
+                "Request failed with code {}, server reports '{}'".format(
+                    response.status_code,
+                    response.text
+                )
+            )
             response.raise_for_status()
         return response.json()
 

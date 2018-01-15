@@ -1,8 +1,11 @@
+import logging
 from typing import List
 
 from django.core.exceptions import ObjectDoesNotExist
 
 from turns.models import IntentTemplate, SlotTemplate, SlotType
+
+logger = logging.getLogger('turns')
 
 
 def persist_intent_template(intent_template: dict):
@@ -25,7 +28,8 @@ def persist_intent_templates(intent_templates: List[dict]):
         if created:
             total_intents_created += 1
             total_slots_created += slots_created
-    print('Persisted {} new intents with a total of {} new slots.'.format(total_intents_created, total_slots_created))
+    logger.info(
+        'Persisted {} new intents with a total of {} new slots.'.format(total_intents_created, total_slots_created))
     return total_intents_created, total_slots_created
 
 

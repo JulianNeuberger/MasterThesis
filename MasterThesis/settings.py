@@ -58,13 +58,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'SilburyDataGrabber.urls'
+ROOT_URLCONF = 'MasterThesis.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
-        ,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -77,7 +77,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'SilburyDataGrabber.wsgi.application'
+WSGI_APPLICATION = 'MasterThesis.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
@@ -192,6 +192,16 @@ LOGGING = {
             'level': 'DEBUG',
         },
         'events': {
+            'handlers': ['console'],
+            'formatter': 'default',
+            'level': 'DEBUG',
+        },
+        'dialogflow': {
+            'handlers': ['console'],
+            'formatter': 'default',
+            'level': 'DEBUG',
+        },
+        'chat': {
             'handlers': ['console'],
             'formatter': 'default',
             'level': 'DEBUG',

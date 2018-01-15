@@ -1,9 +1,13 @@
+import logging
+
 from django.http import HttpResponse
 
 from dialogflow import Intents
 from turns.services import persist_intent_templates
 from turns.util import update_sentiment_for_all_sentences, update_intents_for_all_sentences, \
-    update_user_profile_for_all_dialogues
+    update_user_profile_for_all_dialogues, update_reward_for_all_sentences
+
+logger = logging.getLogger('turns')
 
 
 def index(request):
@@ -25,8 +29,13 @@ def update_user_profiles(request):
     return HttpResponse('Updated all user profiles')
 
 
+def update_rewards(request):
+    update_reward_for_all_sentences(override=True)
+    return HttpResponse('Updated all rewards')
+
+
 def load_intents_from_dialogflow(request, access_token):
-    print(access_token)
+    logger.info('Loading intents from dialogflow using token "{}"'.format(access_token))
     intents = Intents.get_all(access_token)
     persist_intent_templates(intents)
     return HttpResponse('Successfully synchronized all intents in database with dialogflow')

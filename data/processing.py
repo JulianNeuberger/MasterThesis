@@ -12,6 +12,7 @@ logger = logging.getLogger('data')
 
 def get_raw():
     sentences = Sentence.objects.order_by('said_in', 'said_on').all()
+    logger.info('Preprocessing {} sentences'.format(len(sentences)))
     turns = list_to_pairs(sentences)
     xs = []
     ys = []
@@ -55,11 +56,10 @@ def state_from_sentence(sentence: Sentence):
         intent_name = sentence.intent.template.name
     if intent_name not in INTENTS:
         raise NoStateIntentError(sentence.intent)
-    return [
-        to_categorical(y=INTENTS.index(intent_name), num_classes=NUM_INTENTS),
-        sentence.sentiment,
-        convert_user_profile(sentence.user_profile)
-    ]
+    state = to_categorical(y=INTENTS.index(intent_name), num_classes=NUM_INTENTS)
+    state = numpy.append(state, [float(sentence.sentiment)])
+    state = numpy.append(state, convert_user_profile(sentence.user_profile))
+    return state
 
 
 def action_from_sentence(sentence: Sentence):
@@ -67,7 +67,7 @@ def action_from_sentence(sentence: Sentence):
         raise NoIntentError
     if sentence.intent.template.name not in ACTIONS:
         raise NoActionIntentError(sentence.intent)
-    return [to_categorical(y=ACTIONS.index(sentence.intent.template.name), num_classes=NUM_ACTIONS)]
+    return to_categorical(y=ACTIONS.index(sentence.intent.template.name), num_classes=NUM_ACTIONS)[0]
 
 
 def convert_user_profile(user_profile: UserProfile):

@@ -86,6 +86,7 @@ class UserProfile(models.Model):
 class Sentence(models.Model):
     value = models.CharField(max_length=1024)
     sentiment = models.DecimalField(max_digits=10, decimal_places=9, null=True)
+    reward = models.DecimalField(max_digits=10, decimal_places=9, null=False, default=0)
 
     intent = models.ForeignKey(Intent, on_delete=models.CASCADE, null=True)
 

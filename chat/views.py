@@ -1,4 +1,6 @@
 # Create your views here.
+import logging
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -8,6 +10,8 @@ from rest_framework import viewsets
 
 from chat.models import Message, Chat
 from chat.serializers import MessageSerializer, UserSerializer, ChatSerializer
+
+logger = logging.getLogger('chat')
 
 
 @login_required
@@ -27,9 +31,8 @@ def single_chat(request, chat_id):
 @login_required
 @ensure_csrf_cookie
 def index(request):
-    print(request.user)
+    logger.debug('Showing index for user "{}"'.format(request.user))
     context = {'chats': Chat.objects.filter(Q(initiator=request.user) | Q(receiver=request.user)).all()}
-    print(context)
     return TemplateResponse(request=request, template='chat/index.html', context=context)
 
 
