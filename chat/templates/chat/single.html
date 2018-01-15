@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+</head>
+<body style="margin: 0; padding: 0; overflow: hidden; height: 100vh;">
+<script>
+    window.django = {
+        csrfToken: "{{ csrf_token }}",
+        user: {
+            username: "{{ request.user.username }}",
+            full_name: "{{ request.user.get_full_name }}",
+            last_login: "{{ request.user.last_login }}",
+            url : "{{ user_url }}"
+        },
+        chat: {
+            url: "{{ chat_url }}"
+        }
+    };
+</script>
+
+{% load render_bundle from webpack_loader %}
+<div id="container" style="height: 100vh">
+    {% render_bundle 'main' %}
+</div>
+</body>
+</html>

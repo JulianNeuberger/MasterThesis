@@ -1,0 +1,28 @@
+from django.conf import settings
+
+from turns.models import Dialogue, Sentence
+from events.listener import SlackEventsListener, SlackMessageEvent
+
+DIALOG_FLOW_TOKEN = getattr(settings, 'DIALOG_FLOW_TOKEN', None)
+SLACK_VERIFICATION_TOKEN = getattr(settings, 'SLACK_VERIFICATION_TOKEN', None)
+SLACK_BOT_USER_TOKEN = getattr(settings, 'SLACK_BOT_USER_TOKEN', None)
+
+
+class Logger(SlackEventsListener):
+    def on_message(self, event: SlackMessageEvent):
+        super().on_message(event)
+        dialogue, created = Dialogue.objects.get_or_create(with_user=event.channel)
+        try:
+            last_sentence = Sentence.objects.filter(said_in=dialogue).latest(field_name='said_on')
+        except Sentence.DoesNotExist:
+            last_sentence = None
+        if last_sentence is None or last_sentence.said_by != event.user_name:
+            # only allow 1-1 turns
+            sentence = Sentence(value=event.message, said_by=event.user_name, said_in=dialogue)
+            sentence.save()
+            print('saved sentence "{}" to dialogue "{}"'.format(sentence, dialogue))
+        else:
+            print('sentence is from same person as the one before, skipping!')
+
+
+#Client = SlackClient(SLACK_BOT_USER_TOKEN)

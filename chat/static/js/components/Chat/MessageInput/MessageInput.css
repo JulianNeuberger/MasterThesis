@@ -1,0 +1,55 @@
+.container {
+    box-sizing: border-box;
+    width: 100%;
+    display: block;
+    height: 50px;
+    padding: 0;
+    margin: 0;
+    position: relative;
+}
+
+.input {
+    box-sizing: border-box;
+    height: 50px;
+    width: 100%;
+    display: inline-block;
+    margin: 0;
+    padding: 15px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border: none;
+    outline: #d0d0d0 solid 2px;
+    outline-offset: -2px;
+    transition: outline .25s, box-shadow .25s, width .25s;
+    z-index: 1;
+}
+
+.input:hover, .input:focus {
+    outline: #2bafff solid 2px;
+    outline-offset: -2px;
+    box-shadow: 0 0 25px -5px rgba(0, 0, 0, 0.25);
+    width: calc(100% - 50px);
+    transition: outline .25s, box-shadow .25s, width .25s;
+}
+
+.send {
+    box-sizing: border-box;
+    height: 50px;
+    width: 50px;
+    border: none;
+    background-size: cover;
+    background: #d0d0d0 url('./send-button.png') no-repeat center;
+    content: '';
+    display: inline-block;
+    position: absolute;
+    top: 0;
+    right: 0;
+    transition: background .25s;
+    cursor: pointer;
+}
+
+.send:hover {
+    background-color: #2bafff;
+    transition: background .25s;
+}

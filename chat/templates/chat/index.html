@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+</head>
+<body style="margin: 0; padding: 0; overflow: hidden; height: 100vh;">
+
+<h1>Available Chats:</h1>
+<div id="container" style="height: 100vh">
+    {% for chat in chats %}
+        <a href="{% url 'single' chat_id=chat.id %}">Chat {{ chat.id }}</a>
+    {% endfor %}
+</div>
+</body>
+</html>
