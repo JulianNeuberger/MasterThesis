@@ -28,5 +28,3 @@ class Logger(SlackEventsListener):
         else:
             # TODO: shouldn't this be logged, too and just filtered out while pre processing?
             logger.info('Sentence is from same person as the one before, not saving it!')
-
-# Client = SlackClient(SLACK_BOT_USER_TOKEN)
