@@ -88,6 +88,8 @@ class Sentence(models.Model):
     sentiment = models.DecimalField(max_digits=10, decimal_places=9, null=True)
     reward = models.DecimalField(max_digits=10, decimal_places=9, null=False, default=0)
 
+    terminal = models.BooleanField(null=False, default=False)
+
     intent = models.ForeignKey(Intent, on_delete=models.CASCADE, null=True)
 
     said_on = models.DateTimeField(auto_now_add=True)

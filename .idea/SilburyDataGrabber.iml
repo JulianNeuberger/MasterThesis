@@ -21,6 +21,7 @@
       <list>
         <option value="$MODULE_DIR$/templates" />
         <option value="$MODULE_DIR$/chat/templates" />
+        <option value="$MODULE_DIR$/turns/templates" />
       </list>
     </option>
   </component>

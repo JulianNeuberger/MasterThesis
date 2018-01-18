@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Crawling - Test</title>
+</head>
+<body>
+<h1>input message</h1>
+<form method="post" target="{% url 'test_data_crawler' %}">
+    {% csrf_token %}
+    <label>
+        Message: <input name="message" type="text"/>
+    </label>
+    <button type="submit">resolve values</button>
+</form>
+{% if sentence %}
+    <h1>resolved values for sentence "{{ sentence.value }}"</h1>
+    <table>
+        <tbody>
+        <tr>
+            <th>intent</th>
+            <td>
+                {% if sentence.intent %}
+                    {{ sentence.intent.template.name }}
+                {% else %}
+                    commons.unknown
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>sentiment</th>
+            <td>
+                {{ sentence.sentiment }}
+            </td>
+        </tr>
+        <tr>
+            <th>reward</th>
+            <td>
+                {{ sentence.reward }}
+            </td>
+        </tr>
+        </tbody>
+    </table>
+{% endif %}
+</body>
+</html>

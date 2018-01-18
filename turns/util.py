@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from requests import post
 
 import dialogflow
+from bot.config import SECONDS_FOR_TERMINAL, SECONDS_PER_DAY
 from turns.models import Sentence, Slot, Intent, IntentTemplate, Dialogue, UserProfile, Player, Team
 
 logger = logging.getLogger('turns')
@@ -227,3 +228,41 @@ def reward_for_reaction(intent_name):
         'common.thanks': .25,
         'reaction.content.not_interested': -.75
     }.get(intent_name, .0)
+
+
+def update_terminals_for_all_dialogues(override=False):
+    dialogues = Dialogue.objects.all()
+    for dialogue in dialogues:
+        update_terminals_for_single_dialogue(dialogue, override)
+
+
+def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False):
+    sentences = dialogue.sentence_set.all()
+    num_sentences = len(sentences)
+    for i, sentence in enumerate(sentences):
+        if sentence.intent is not None and sentence.intent.template.name == 'common.bye':
+            logger.debug('Considering sentence "{}" to be terminal.'.format(sentence))
+            next_i = i + 1
+            if next_i < num_sentences:
+                next_sentence = sentences[next_i]
+                if next_sentence.intent is not None:
+                    duration_to_next = next_sentence.said_on - sentence.said_on
+                    seconds_between_sentences = duration_to_next.seconds + duration_to_next.days * SECONDS_PER_DAY
+                    if seconds_between_sentences > SECONDS_FOR_TERMINAL:
+                        logger.debug('Got no other message for {} seconds, sentence is terminal!'.format(
+                            seconds_between_sentences
+                        ))
+                    else:
+                        logger.debug('Got message "{}" after {} seconds, so sentence is not terminal!'.format(
+                            next_sentence,
+                            seconds_between_sentences
+                        ))
+            else:
+                logger.debug('There was no other message in this dialogue, setting "{}" to terminal'.format(sentence))
+
+
+def update_all_for_single_sentence(sentence: Sentence):
+    update_intent_for_single_sentence(sentence, True)
+    update_sentiment_for_single_sentence(sentence, True)
+    update_reward_for_single_sentence(sentence, True)
+    return sentence

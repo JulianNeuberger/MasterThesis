@@ -75,6 +75,8 @@ NUM_ACTIONS = len(ACTIONS)
 # currently scalar
 SENTIMENT_LEN = 1
 
+QUALITY_LEN = 1
+
 # only depicts whether the variable in question is known or not
 USER_PROFILE_VARIABLES = [
     'name',
@@ -86,9 +88,19 @@ USER_PROFILE_VARIABLES = [
 USER_PROFILE_LEN = len(USER_PROFILE_VARIABLES)
 
 STATE_SHAPE = (NUM_INTENTS + SENTIMENT_LEN + USER_PROFILE_LEN,)
+CONTEXT_LENGTH = 5
+CONTEXT_SHAPE = (CONTEXT_LENGTH,) + STATE_SHAPE
 
 IMAGINATION_DEPTH = 3
-BATCH_SIZE = 20
+BATCH_SIZE = 32
+NUM_EPOCHS = 1000
 TEST_RATIO = .3
 
-DISCOUNT = .5
+DISCOUNT = .1
+START_DISCOUNT = .1
+END_DISCOUNT = .8
+EPOCHS_UNTIL_FULL_DISCOUNT = int(NUM_EPOCHS / 2)
+
+# time to wait for another message after an "commons.bye" before marking a message as terminal (ending conversation)
+SECONDS_FOR_TERMINAL = 60
+SECONDS_PER_DAY = 3600 * 24

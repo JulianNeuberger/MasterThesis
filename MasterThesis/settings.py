@@ -205,6 +205,11 @@ LOGGING = {
             'handlers': ['console'],
             'formatter': 'default',
             'level': 'DEBUG',
+        },
+        'bot': {
+            'handlers': ['console'],
+            'formatter': 'default',
+            'level': 'DEBUG',
         }
     },
 }
