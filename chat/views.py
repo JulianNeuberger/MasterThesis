@@ -28,13 +28,6 @@ def single_chat(request, chat_id):
     return TemplateResponse(request=request, template='chat/single.html', context=context)
 
 
-class RestEndPoint:
-    def __init__(self):
-        pass
-
-
-
-
 @login_required
 @ensure_csrf_cookie
 def index(request):
