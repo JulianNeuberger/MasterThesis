@@ -5,6 +5,7 @@ from django.db import models
 class Chat(models.Model):
     initiator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
+    name = models.CharField(max_length=64, null=True)
 
 
 class Message(models.Model):

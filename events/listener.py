@@ -33,12 +33,12 @@ class SlackEventsListener:
         return self._event_function_mapping[type(event)]
 
 
-class SlackEventManager(metaclass=Singleton):
+class EventManager:
     def __init__(self):
         self._listeners = []
 
     def register_listener(self, listener: SlackEventsListener):
-        logger.debug("New listener: '{}'!".format(listener.__class__))
+        logger.debug("New listener '{}' in manager '{}'!".format(listener.__class__, self))
         self._listeners.append(listener)
 
     def unregister_listener(self, listener: SlackEventsListener):
@@ -46,5 +46,13 @@ class SlackEventManager(metaclass=Singleton):
 
     def notify_listeners(self, event):
         for listener in self._listeners:
-            logger.debug('notified listener {}'.format(listener))
+            logger.debug('notified listener {} for manager {}'.format(listener, self))
             listener.notify(event)
+
+
+class SlackEventManager(EventManager, metaclass=Singleton):
+    pass
+
+
+class CustomChatEventManager(EventManager, metaclass=Singleton):
+    pass

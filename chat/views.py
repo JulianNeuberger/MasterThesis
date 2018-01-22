@@ -28,6 +28,13 @@ def single_chat(request, chat_id):
     return TemplateResponse(request=request, template='chat/single.html', context=context)
 
 
+class RestEndPoint:
+    def __init__(self):
+        pass
+
+
+
+
 @login_required
 @ensure_csrf_cookie
 def index(request):
@@ -39,6 +46,11 @@ def index(request):
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
+
+    def create(self, request, *args, **kwargs):
+        ret = super().create(request, *args, **kwargs)
+        logger.debug('Added a message successfully')
+        return ret
 
 
 class UserViewSet(viewsets.ModelViewSet):
