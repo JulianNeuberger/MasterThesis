@@ -9,7 +9,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 
-from chat.listeners import CustomChatEventsListener
+from chat.listener import CustomChatEventsListener
 from chat.models import Message, Chat
 from chat.serializers import MessageSerializer, UserSerializer, ChatSerializer
 from events.listener import CustomChatEventManager, BaseMessageEvent
