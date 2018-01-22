@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from events.listener import SlackEventManager, SlackMessageEvent
+from events.listener import SlackEventManager, BaseMessageEvent
 
 SLACK_VERIFICATION_TOKEN = getattr(settings, 'SLACK_VERIFICATION_TOKEN', None)
 SLACK_BOT_USER_TOKEN = getattr(settings, 'SLACK_BOT_USER_TOKEN', None)
@@ -34,5 +34,11 @@ class SlackEventEndpoints(APIView):
             channel = event_message.get('channel')
             if text is not None:
                 # don't handle pure image/location/gif/audio/video messages
-                self.event_manager.notify_listeners(SlackMessageEvent(user_name=user, channel=channel, message=text))
+                self.event_manager.notify_listeners(
+                    BaseMessageEvent(
+                        user_name=user,
+                        channel=channel,
+                        message=text
+                    )
+                )
         return Response(status=status.HTTP_200_OK)

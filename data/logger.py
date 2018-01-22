@@ -2,7 +2,7 @@ import logging
 
 from django.conf import settings
 
-from events.listener import SlackEventsListener, SlackMessageEvent
+from events.listener import SlackEventsListener, BaseMessageEvent
 from turns.models import Dialogue, Sentence
 
 DIALOG_FLOW_TOKEN = getattr(settings, 'DIALOG_FLOW_TOKEN', None)
@@ -13,7 +13,7 @@ logger = logging.getLogger('data')
 
 
 class Logger(SlackEventsListener):
-    def on_message(self, event: SlackMessageEvent):
+    def on_message(self, event: BaseMessageEvent):
         super().on_message(event)
         dialogue, created = Dialogue.objects.get_or_create(with_user=event.channel)
         try:
