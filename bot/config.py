@@ -1,6 +1,5 @@
 INTENTS = [
     'common.unknown',
-
     'common.bad',
     'common.bye',
     'common.good',

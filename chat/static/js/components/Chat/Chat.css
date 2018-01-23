@@ -1,8 +1,9 @@
 @import url('https://fonts.googleapis.com/css?family=Bitter');
+@import url('https://fonts.googleapis.com/css?family=Raleway');
 
 .container {
     height: 100%;
     width: 100%;
     box-sizing: border-box;
-    font-family: 'Bitter', serif;
+    font-family: 'Raleway', serif;
 }
