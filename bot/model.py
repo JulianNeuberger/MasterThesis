@@ -1,10 +1,13 @@
 from typing import List
 
+import numpy
 from keras.layers import Concatenate, Dense, Input, Layer, Conv1D, Flatten, Dropout, MaxPool1D
 from keras.models import Model
 
 from bot.config import STATE_SHAPE, NUM_ACTIONS, IMAGINATION_DEPTH, NUM_INTENTS, SENTIMENT_LEN, \
-    USER_PROFILE_LEN, CONTEXT_SHAPE
+    USER_PROFILE_LEN, CONTEXT_SHAPE, ACTIONS, IMAGINATION_MODEL_LATEST_WEIGHTS_FILE
+from events.util import Singleton
+from turns.models import Sentence
 
 
 def get_quality_model(state) -> Layer:
@@ -35,7 +38,9 @@ def get_environment_model(state: Layer, quality: Layer, lookahead=IMAGINATION_DE
         predicted_user_profile = Dense(units=USER_PROFILE_LEN, activation='sigmoid', use_bias=True,
                                        name='profile_t{}'.format(t))(x)
 
-        new_state = Concatenate()([predicted_intent, predicted_sentiment, predicted_user_profile])
+        new_state = Concatenate(name='state_{}_predicted'.format(t + 1))(
+            [predicted_intent, predicted_sentiment, predicted_user_profile]
+        )
         new_states.append(new_state)
 
     encoded_imagination = get_encoder(new_states, predicted_rewards)
@@ -88,3 +93,16 @@ def get_action_model() -> Model:
 
     action = Dense(units=NUM_ACTIONS, activation='softmax', use_bias=True)(x)
     return Model(inputs=[current_state], outputs=[action])
+
+
+class QueryableModel(metaclass=Singleton):
+    def __init__(self):
+        self._model = get_imagination_model()
+        self._model.load_weights(IMAGINATION_MODEL_LATEST_WEIGHTS_FILE)
+
+    def query(self, context: List[Sentence], resolve_action_name=False):
+        prediction = self._model.predict([context])
+        if resolve_action_name:
+            return ACTIONS[numpy.argmax(prediction[0])]
+        else:
+            return prediction[0]

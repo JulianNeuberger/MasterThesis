@@ -44,11 +44,12 @@ def _update_sentence_generic(update_method: Callable[[Sentence, bool], Any], fie
                                                                                   field_name))
 
 
-def update_sentiment_for_single_sentence(sentence, override=False):
+def update_sentiment_for_single_sentence(sentence, override=False, save=True):
     if sentence.sentiment is None or override:
         sentiment = crawl_single_sentiment(sentence.value)
         sentence.sentiment = sentiment
-        sentence.save()
+        if save:
+            sentence.save()
     return sentence.sentiment
 
 
@@ -77,7 +78,7 @@ def crawl_single_sentiment(text):
 ACCESS_TOKEN = '91f867c85e574b7cb1021d21b9319c55'
 
 
-def update_intent_for_single_sentence(sentence: Sentence, override=False):
+def update_intent_for_single_sentence(sentence: Sentence, override=False, save=True):
     if sentence.intent is None or override:
         response = dialogflow.Query.from_text(sentence.value, ACCESS_TOKEN, lang='en', session_id=sentence.said_in_id)
         result = response['result']
@@ -95,11 +96,12 @@ def update_intent_for_single_sentence(sentence: Sentence, override=False):
             sentence.intent = None
         intent_name = sentence.intent.template.name if sentence.intent is not None else 'unknown_intent'
         logger.debug("New intent for sentence '{}' is {}".format(sentence.value, intent_name))
-        sentence.save()
+        if save:
+            sentence.save()
     return sentence.intent.template.name if sentence.intent is not None else 'commons.unknown'
 
 
-def update_user_profile_for_single_dialogue(dialogue: Dialogue, override=False):
+def update_user_profile_for_single_dialogue(dialogue: Dialogue, override=False, save=True):
     last_profile = None
     for sentence in dialogue.sentence_set.order_by('said_on').all():
         if sentence.user_profile is None or override:
@@ -107,17 +109,18 @@ def update_user_profile_for_single_dialogue(dialogue: Dialogue, override=False):
                 last_profile = UserProfile.objects.create()
                 logger.debug("No user profile is existent for dialogue {}, created one".format(sentence.said_in))
             sentence.user_profile = get_user_profile_for_sentence(sentence, last_profile)
-            sentence.save()
+            if save:
+                sentence.save()
 
         last_profile = sentence.user_profile
 
 
-def update_user_profile_for_all_dialogues(override=False):
+def update_user_profile_for_all_dialogues(override=False, save=True):
     for dialogue in Dialogue.objects.all():
-        update_user_profile_for_single_dialogue(dialogue, override)
+        update_user_profile_for_single_dialogue(dialogue, override, save)
 
 
-def get_user_profile_for_sentence(sentence: Sentence, previous: UserProfile):
+def get_user_profile_for_sentence(sentence: Sentence, previous: UserProfile, save=True):
     intent = sentence.intent
     assert previous is not None
     if intent is not None:
@@ -128,7 +131,8 @@ def get_user_profile_for_sentence(sentence: Sentence, previous: UserProfile):
                          .format(sentence,
                                  sentence.intent.template.name,
                                  updated_profile))
-            updated_profile.save()
+            if save:
+                updated_profile.save()
             return updated_profile
     return previous
 
@@ -214,10 +218,12 @@ def duplicate_user_profile_no_save(user_profile: UserProfile):
     return user_profile
 
 
-def update_reward_for_single_sentence(sentence: Sentence, override=False):
+def update_reward_for_single_sentence(sentence: Sentence, override=False, save=True):
     if override or sentence.reward is None:
         intent_name = sentence.intent.template.name if sentence.intent is not None else 'common.unknown'
         sentence.reward = reward_for_reaction(intent_name)
+        if save:
+            sentence.save()
     return sentence.reward
 
 
@@ -230,13 +236,13 @@ def reward_for_reaction(intent_name):
     }.get(intent_name, .0)
 
 
-def update_terminals_for_all_dialogues(override=False):
+def update_terminals_for_all_dialogues(override=False, save=True):
     dialogues = Dialogue.objects.all()
     for dialogue in dialogues:
-        update_terminals_for_single_dialogue(dialogue, override)
+        update_terminals_for_single_dialogue(dialogue, override, save)
 
 
-def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False):
+def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False, save=True):
     sentences = dialogue.sentence_set.all()
     num_sentences = len(sentences)
     for i, sentence in enumerate(sentences):
@@ -252,6 +258,9 @@ def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False):
                         logger.debug('Got no other message for {} seconds, sentence is terminal!'.format(
                             seconds_between_sentences
                         ))
+                        sentence.terminal = True
+                        if save:
+                            sentence.save()
                     else:
                         logger.debug('Got message "{}" after {} seconds, so sentence is not terminal!'.format(
                             next_sentence,
@@ -261,8 +270,8 @@ def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False):
                 logger.debug('There was no other message in this dialogue, setting "{}" to terminal'.format(sentence))
 
 
-def update_all_for_single_sentence(sentence: Sentence):
-    update_intent_for_single_sentence(sentence, True)
-    update_sentiment_for_single_sentence(sentence, True)
-    update_reward_for_single_sentence(sentence, True)
+def update_all_for_single_sentence(sentence: Sentence, save=True):
+    update_intent_for_single_sentence(sentence, True, save)
+    update_sentiment_for_single_sentence(sentence, True, save)
+    update_reward_for_single_sentence(sentence, True, save)
     return sentence

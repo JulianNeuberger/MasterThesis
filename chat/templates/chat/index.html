@@ -6,6 +6,9 @@
 </head>
 <body style="margin: 0; padding: 0; overflow: hidden; height: 100vh;">
 
+<h1>Start Chat with bot</h1>
+<div><a href="{% url 'start_bot_chat' %}"></a></div>
+
 <h1>Available Chats:</h1>
 <div id="container" style="height: 100vh">
     {% for chat in chats %}

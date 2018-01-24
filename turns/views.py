@@ -56,7 +56,7 @@ def direct_test(request: HttpRequest):
         dialogue = Dialogue.objects.first()
         sentence.said_in = dialogue
         sentence.value = request.POST.get(key='message', default='')
-        update_all_for_single_sentence(sentence)
+        update_all_for_single_sentence(sentence, False)
         context = {
             'sentence': sentence
         }

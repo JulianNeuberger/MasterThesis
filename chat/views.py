@@ -1,9 +1,11 @@
 # Create your views here.
 import logging
+from datetime import datetime
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.core.exceptions import ObjectDoesNotExist
+from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import viewsets, status
@@ -35,8 +37,25 @@ def single_chat(request, chat_id):
 @ensure_csrf_cookie
 def index(request):
     logger.debug('Showing index for user "{}"'.format(request.user))
-    context = {'chats': Chat.objects.filter(Q(initiator=request.user) | Q(receiver=request.user)).all()}
-    return TemplateResponse(request=request, template='chat/index.html', context=context)
+    bot_user = User.objects.get(username='Chatbot')
+    assert bot_user is not None, 'We need some kind of bot user for this to work'
+    try:
+        chat = Chat.objects.get(initiator=request.user, receiver=bot_user)
+    except ObjectDoesNotExist:
+        chat = Chat.objects.create(initiator=request.user, receiver=bot_user,
+                                   name='bot_chat_{}_with_{}'.format(datetime.now(), request.user.username))
+    return redirect('single', chat_id=chat.id)
+
+
+@login_required
+def start_bot_chat(request):
+    assert request.user is not None, 'login is required to start chat with bot'
+    # FIXME: Dirty hack, maybe the chat should always assume receiver is the bot?
+    bot_user = User.objects.get(username='Chatbot')
+    assert bot_user is not None, 'We need some kind of bot user for this to work'
+    chat = Chat.objects.create(initiator=request.user, receiver=bot_user,
+                               name='bot_chat_{}_with_{}'.format(datetime.now(), request.user.username))
+    return redirect('single', chat_id=chat.id)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
