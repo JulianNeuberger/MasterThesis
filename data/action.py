@@ -1,0 +1,30 @@
+from keras.utils import to_categorical
+
+from bot.config import ACTIONS, NUM_ACTIONS
+from data.exceptions import NoIntentError, NoActionIntentError
+from turns.models import Sentence
+
+
+class Action:
+    action_vector = None
+    reward = 0
+    terminal = False
+
+    def __init__(self, sentence: Sentence = None):
+        """
+        :param sentence: sentence to get the action from
+
+        :raises NoIntentError: if the given sentence has no intent
+        :raises NoActionIntentError: if the given sentence has an intent, that cannot be interpreted as action
+        """
+        self.action_vector = Action._action_from_sentence(sentence)
+        self.reward = sentence.reward
+        self.terminal = sentence.terminal
+
+    @staticmethod
+    def _action_from_sentence(sentence: Sentence):
+        if sentence.intent is None:
+            raise NoIntentError(sentence)
+        if sentence.intent.template.name not in ACTIONS:
+            raise NoActionIntentError(sentence.intent)
+        return to_categorical(y=ACTIONS.index(sentence.intent.template.name), num_classes=NUM_ACTIONS)[0]

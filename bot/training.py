@@ -8,8 +8,8 @@ from keras.engine import Model
 
 from bot.config import ACTIONS, BATCH_SIZE, NUM_EPOCHS, DISCOUNT, STATE_SHAPE
 from bot.model import get_imagination_model
-from data.processing import load_dumped, Transition
-from turns.models import Sentence
+from data.processing import load_dumped
+from data.transition import Transition
 
 logger = logging.getLogger('bot')
 
