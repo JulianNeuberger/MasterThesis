@@ -70,11 +70,12 @@ class Context:
         # number of missing actions/states
         missing_context = len(self.states) - self.context_length
         ret = []
-        for state, action in zip(self.states, self.actions):
-            ret.append([
-                Context._single_state_as_vector_data(state),
-                action.action_vector
-            ])
+        if self.states is not None and self.actions is not None:
+            for state, action in zip(self.states, self.actions):
+                ret.append([
+                    Context._single_state_as_vector_data(state),
+                    action.action_vector
+                ])
         # a single context vector entry consists of a state and action both as vectors and concatenated
         padding = numpy.zeros(STATE_SHAPE[0] + NUM_ACTIONS) * missing_context
         return ret + padding
