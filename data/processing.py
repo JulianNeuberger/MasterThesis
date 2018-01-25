@@ -1,20 +1,20 @@
 import logging
 from pickle import dump, load
-from typing import Tuple, List
+from typing import Tuple
 
 import numpy
 from keras.utils import to_categorical
 
 from bot.config import *
+from data.common import pad_context, produce_turns_from_sentence_list
 from turns.models import Sentence, UserProfile
 
 logger = logging.getLogger('data')
 
 
-def get_transitions():
-    sentences = Sentence.objects.order_by('said_in', 'said_on').all()
+def get_transitions_from_sentences(sentences):
     logger.info('Pre processing {} sentences'.format(len(sentences)))
-    turns = list_to_pairs(sentences)
+    turns = produce_turns_from_sentence_list(sentences)
     num_turns = len(turns)
     transitions = []
     for i, turn in enumerate(turns):
@@ -30,10 +30,6 @@ def get_transitions():
             logger.warning(
                 'Turn "{}" -> "{}" can not be used, see warnings above, skipping it.'.format(turn[0], turn[1]))
     return transitions
-
-
-def list_to_pairs(input_list):
-    return list(zip(input_list[::2], input_list[1::2]))
 
 
 def process_turn(turn, later_turn):
@@ -71,7 +67,7 @@ def convert_user_profile(user_profile: UserProfile):
     return [1 if x is not None else 0 for x in user_profile]
 
 
-def pre_process_transitions(transitions):
+def transitions_to_contexts(transitions):
     transitions = numpy.array(transitions)
     contexts = []
     for i, transition in enumerate(transitions):
@@ -82,18 +78,14 @@ def pre_process_transitions(transitions):
         context = pad_context(context, CONTEXT_LENGTH)
         contexts.append(context)
     contexts = numpy.array(contexts)
+    return contexts
+
+
+def split_contexts(contexts):
     split = int(contexts.shape[0] * (1 - TEST_RATIO))
     permutation = numpy.random.permutation(contexts.shape[0])
     train_indices, test_indices = permutation[:split], permutation[split:]
     return contexts[train_indices], contexts[test_indices]
-
-
-def pad_context(context: List, pad_to_length: int):
-    if len(context) < pad_to_length:
-        missing = pad_to_length - len(context)
-        padding = [None] * missing
-        context = context + padding
-    return context
 
 
 def load_dumped():
@@ -120,7 +112,7 @@ class Transition:
             self.state = state_from_sentence(start_user)
             self.next_state = state_from_sentence(next_user)
             self.action = action_from_sentence(start_bot)
-            self.reward = float(next_user.reward)
+            self.reward = float(start_bot.reward)
             self.terminal = bool(next_bot.terminal)
         except NoIntentError or IntentError or NoStateIntentError:
             raise TurnNotUsable
@@ -134,22 +126,6 @@ class Transition:
         except NoActionIntentError as e:
             logger.error('Intent "{}" is not a action.'.format(e.intent.template.name))
             raise TurnNotUsable
-
-    def get_quality(self, model, discount=DISCOUNT):
-        state = self.state
-        state = numpy.array([self.state])
-        qualities = model.predict(state)[0]
-        action_index = numpy.argmax(self.action)
-        if self.terminal is True:
-            # this is the last action in the sequence, do not use discounting
-            qualities[action_index] = self.reward
-        else:
-            next_state = self.next_state
-            next_state = numpy.array([next_state])
-            future_value = model.predict(next_state)[0]
-            # in the middle of a sequence, use discounting
-            qualities[action_index] = self.reward + discount * numpy.max(future_value)
-        return qualities
 
 
 class NoIntentError(Exception):
@@ -176,8 +152,9 @@ class TurnNotUsable(Exception):
 
 
 def run_pre_processing():
-    transitions = get_transitions()
-    transitions = pre_process_transitions(transitions)
+    sentences = Sentence.objects.order_by('said_in', 'said_on').all()
+    transitions = get_transitions_from_sentences(sentences)
+    transitions = transitions_to_contexts(transitions)
     dump_pre_processed_transitions(transitions)
 
 

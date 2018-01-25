@@ -6,6 +6,7 @@ from keras.models import Model
 
 from bot.config import STATE_SHAPE, NUM_ACTIONS, IMAGINATION_DEPTH, NUM_INTENTS, SENTIMENT_LEN, \
     USER_PROFILE_LEN, CONTEXT_SHAPE, ACTIONS, IMAGINATION_MODEL_LATEST_WEIGHTS_FILE
+from data.processing import Transition, state_from_sentence
 from events.util import Singleton
 from turns.models import Sentence
 
@@ -100,9 +101,13 @@ class QueryableModel(metaclass=Singleton):
         self._model = get_imagination_model()
         self._model.load_weights(IMAGINATION_MODEL_LATEST_WEIGHTS_FILE)
 
-    def query(self, context: List[Sentence], resolve_action_name=False):
+    def query(self, context: List[Transition], resolve_action_name=False):
         prediction = self._model.predict([context])
         if resolve_action_name:
             return ACTIONS[numpy.argmax(prediction[0])]
         else:
             return prediction[0]
+
+    def query_on_sentence(self, sentence: Sentence):
+        state = state_from_sentence(sentence)
+        context = state + get

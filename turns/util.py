@@ -246,7 +246,7 @@ def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False, sav
     sentences = dialogue.sentence_set.all()
     num_sentences = len(sentences)
     for i, sentence in enumerate(sentences):
-        if sentence.intent is not None and sentence.intent.template.name == 'common.bye':
+        if sentence.intent is not None and sentence.intent.template.name == 'common.bye' and override:
             logger.debug('Considering sentence "{}" to be terminal.'.format(sentence))
             next_i = i + 1
             if next_i < num_sentences:
@@ -259,13 +259,14 @@ def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False, sav
                             seconds_between_sentences
                         ))
                         sentence.terminal = True
-                        if save:
-                            sentence.save()
                     else:
                         logger.debug('Got message "{}" after {} seconds, so sentence is not terminal!'.format(
                             next_sentence,
                             seconds_between_sentences
                         ))
+                        sentence.terminal = False
+                    if save:
+                        sentence.save()
             else:
                 logger.debug('There was no other message in this dialogue, setting "{}" to terminal'.format(sentence))
 
