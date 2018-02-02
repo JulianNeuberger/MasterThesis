@@ -41,11 +41,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'turns.apps.TurnsConfig',
     'chat.apps.ChatConfig',
     'events.apps.EventsConfig',
     'data.apps.DataConfig',
     'bot.apps.BotConfig',
+    'turns.apps.TurnsConfig',
 ]
 
 MIDDLEWARE = [

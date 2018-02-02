@@ -7,28 +7,28 @@ from django.utils import timezone
 
 from bot.config import SECONDS_FOR_TERMINAL, SECONDS_PER_DAY
 from bot.listener import BotListener
-from events.listener import BaseMessageEvent
+from chat.events import ChatMessageEvent
 from turns.models import Sentence, Dialogue
 from turns.util import update_all_for_single_sentence, update_user_profile_for_single_dialogue
 
 logger = logging.getLogger('chat')
 
 
-class CustomChatEventsListener:
+class ChatMessageListener:
     def __init__(self):
         self._terminator = TurnsTerminator()
         self._terminator.start()
         bot_user = User.objects.get(username='Chatbot')
         self._bot_listener = BotListener(bot_user=bot_user)
 
-    def notify(self, event: BaseMessageEvent):
-        assert isinstance(event, BaseMessageEvent)
+    def notify(self, event: ChatMessageEvent):
         sent_to = event.channel.initiator \
-            if event.channel.initiator.username != event.username \
+            if event.channel.initiator.username != event.user.username \
             else event.channel.receiver
-        logger.info('Got message "{}" from "{}" to "{}"'.format(event.message, event.username, sent_to.username))
+        logger.info('Got message "{}" from "{}" to "{}"'.format(event.value, event.user.username, sent_to.username))
         dialogue, _ = Dialogue.objects.get_or_create(with_user=sent_to.username)
-        sentence = Sentence(value=event.message, said_by=event.username, said_in=dialogue)
+        sentence = Sentence(value=event.value, said_by=event.user.username, said_in=dialogue,
+                            raw_sentence=event.instance)
         sentence = update_all_for_single_sentence(sentence, save=True)
         update_user_profile_for_single_dialogue(sentence.said_in, False, True)
         sentence.refresh_from_db()

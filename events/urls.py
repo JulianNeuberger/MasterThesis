@@ -1,5 +1,5 @@
 from django.conf.urls import url
 
-from events.views import SlackEventEndpoints
+# from events.views import SlackEventEndpoints
 
-urlpatterns = [url(r'^$', SlackEventEndpoints.as_view())]
+# urlpatterns = [url(r'^$', SlackEventEndpoints.as_view())]

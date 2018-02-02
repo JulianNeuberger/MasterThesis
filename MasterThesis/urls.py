@@ -22,7 +22,6 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
-    url(r'^events/', include('events.urls')),
     url(r'^turns/', include('turns.urls')),
     url(r'^chat/', include('chat.urls')),
     url(r'^data/', include('data.urls')),

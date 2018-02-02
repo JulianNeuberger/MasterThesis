@@ -1,5 +1,7 @@
 from django.db import models
 
+from chat.models import Message
+
 
 class Dialogue(models.Model):
     held_on = models.DateTimeField(auto_now_add=True)
@@ -91,6 +93,8 @@ class Sentence(models.Model):
     terminal = models.BooleanField(null=False, default=False)
 
     intent = models.ForeignKey(Intent, on_delete=models.CASCADE, null=True)
+
+    raw_sentence = models.ForeignKey(Message, null=True)
 
     said_on = models.DateTimeField(auto_now_add=True)
     said_by = models.CharField(max_length=64, null=False)

@@ -8,13 +8,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
-from rest_framework import viewsets, status
-from rest_framework.response import Response
+from rest_framework import viewsets
 
-from chat.listener import CustomChatEventsListener
+from chat.events import ListenerManager, ChatMessageEvent
 from chat.models import Message, Chat
 from chat.serializers import MessageSerializer, UserSerializer, ChatSerializer
-from events.listener import CustomChatEventManager, BaseMessageEvent
 
 logger = logging.getLogger('chat')
 
@@ -61,25 +59,30 @@ def start_bot_chat(request):
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-    event_manager = CustomChatEventManager()
-    event_manager.register_listener(CustomChatEventsListener())
+    event_manager = ListenerManager()
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        message_instance = self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        self.event_manager.notify_listeners(
-            BaseMessageEvent(
-                user_name=message_instance.sent_by.username,
-                channel=message_instance.sent_in,
-                message=message_instance.value
-            )
-        )
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     message_instance = self.perform_create(serializer)
+    #     headers = self.get_success_headers(serializer.data)
+    #     self.event_manager.notify_listeners(
+    #         BaseMessageEvent(
+    #             instance=message_instance
+    #         )
+    #     )
+    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        return instance
 
     def perform_create(self, serializer):
-        return serializer.save()
+        instance = serializer.save()
+        self.event_manager.notify_all(
+            ChatMessageEvent(message_instance=instance)
+        )
+        return instance
 
 
 class UserViewSet(viewsets.ModelViewSet):
