@@ -50,7 +50,7 @@ def index(request):
 @login_required
 def start_bot_chat(request):
     assert request.user is not None, 'login is required to start chat with bot'
-    # FIXME: Dirty hack, maybe the chat should always assume receiver is the bot?
+    # FIXME: Dirty hack, maybe the chat should assume receiver is the bot?
     bot_user = User.objects.get(username='Chatbot')
     assert bot_user is not None, 'We need some kind of bot user for this to work'
     chat = Chat.objects.create(initiator=request.user, receiver=bot_user,
@@ -72,7 +72,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         self.event_manager.notify_listeners(
             BaseMessageEvent(
                 user_name=message_instance.sent_by.username,
-                channel=message_instance.sent_in.name,
+                channel=message_instance.sent_in,
                 message=message_instance.value
             )
         )

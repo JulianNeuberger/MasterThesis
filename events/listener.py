@@ -7,7 +7,7 @@ logger = logging.getLogger('events')
 
 class BaseChatEvent:
     def __init__(self, user_name, channel):
-        self.user_name = user_name
+        self.username = user_name
         self.channel = channel
 
 
@@ -47,7 +47,7 @@ class EventManager:
             'Listeners registered on {} need at least the notify(self, event) method.'.format(
                 self.__class__.__name__
             )
-        logger.debug("New listener '{}' in manager '{}'!".format(listener.__class__, self))
+        logger.debug("New listener '{}' in manager '{}'!".format(listener.__class__.__name__, self))
         self._listeners.append(listener)
 
     def unregister_listener(self, listener):

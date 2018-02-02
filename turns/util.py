@@ -274,5 +274,5 @@ def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False, sav
 def update_all_for_single_sentence(sentence: Sentence, save=True):
     update_intent_for_single_sentence(sentence, True, save)
     update_sentiment_for_single_sentence(sentence, True, save)
-    update_reward_for_single_sentence(sentence, True, save)
+    # update_reward_for_single_sentence(sentence, True, save)
     return sentence

@@ -33,8 +33,7 @@ def run_pre_processing():
     logger.info('Pre processing {} sentences'.format(len(sentences)))
     turns = Turn.sentences_to_turns(sentences)
     contexts = Context.get_contexts_from_turns(turns)
-    contexts = [context.as_matrix() for context in contexts]
+    # contexts = [context.as_matrix() for context in contexts]
     contexts = numpy.array(contexts)
     contexts = test_train_split_numpy_array(contexts)
-    # FIXME: MISSING QUALITY!!!
     dump_data(contexts)

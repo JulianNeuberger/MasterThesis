@@ -17,9 +17,12 @@ class Action:
         :raises NoIntentError: if the given sentence has no intent
         :raises NoActionIntentError: if the given sentence has an intent, that cannot be interpreted as action
         """
-        self.action_vector = Action._action_from_sentence(sentence)
-        self.reward = sentence.reward
-        self.terminal = sentence.terminal
+        self._action_vector = Action._action_from_sentence(sentence)
+        self.reward = float(sentence.reward)
+        self.terminal = bool(sentence.terminal)
+
+    def as_vector(self):
+        return self._action_vector
 
     @staticmethod
     def _action_from_sentence(sentence: Sentence):

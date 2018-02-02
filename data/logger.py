@@ -20,9 +20,9 @@ class Logger(SlackEventsListener):
             last_sentence = Sentence.objects.filter(said_in=dialogue).latest(field_name='said_on')
         except Sentence.DoesNotExist:
             last_sentence = None
-        if last_sentence is None or last_sentence.said_by != event.user_name:
+        if last_sentence is None or last_sentence.said_by != event.username:
             # only allow 1-1 turns
-            sentence = Sentence(value=event.message, said_by=event.user_name, said_in=dialogue)
+            sentence = Sentence(value=event.message, said_by=event.username, said_in=dialogue)
             sentence.save()
             logger.info('Saved new sentence "{}" said in dialogue "{}"'.format(sentence, dialogue))
         else:

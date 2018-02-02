@@ -1,6 +1,6 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
 import styles from './MessageList.css'
+import MessageRating from "./MessageRating/MessageRating";
 
 export default class MessageList extends React.Component {
     constructor(props) {
@@ -56,21 +56,31 @@ export default class MessageList extends React.Component {
     render() {
         let messages = this.state.data.map(function (message) {
             let className = styles.other;
-            if (message.sent_by === window.django.user.url) {
+            let isUserMessage = message.sent_by === window.django.user.url;
+            if (isUserMessage) {
                 className = styles.own;
             }
+            let ratingComponent = isUserMessage ? (null) : (<MessageRating name={'Interaction'}
+                                                                           csrfToken={this.props.csrfToken}
+                                                                           current={parseFloat(message.reward)}
+                                                                           url={message.url}/>);
             return (
                 <li key={message.url} className={className}>
-                    <span className={styles.message}>{message.value}</span>
+                    <span className={styles.message}>
+                        <div>{message.value}</div>
+                        {ratingComponent}
+                    </span>
                 </li>
             )
-        });
+        }.bind(this));
         return (
             <div className={styles.container} onScroll={this.handleScroll}>
                 <ul className={styles.list} ref="messageList">
                     {messages}
                 </ul>
-                <div ref={ele => {this.listEndMarker = ele;}}/>
+                <div ref={ele => {
+                    this.listEndMarker = ele;
+                }}/>
             </div>
         )
     }

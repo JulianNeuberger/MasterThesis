@@ -1,8 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import Chat from './components/Chat/Chat'
+// import '!style-loader!css-loader!font-awesome/css/font-awesome.min.css';
 
-console.log(window.django.csrfToken);
 ReactDOM.render(<Chat url='/chat/api/messages/'
                       chatId={window.django.chat.url}
                       userId={window.django.user.url}

@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import numpy
@@ -7,8 +8,15 @@ from data.action import Action
 from data.state import State
 from data.turn import Turn
 
+logger = logging.getLogger('data')
+
 
 class Context:
+    """
+    An object representing a stack of turns of format State->Action.
+    Index 0 is the current turn, all following are "one step into the past"
+    """
+
     _states = None
     _actions = None
     _context_length = 0
@@ -29,6 +37,7 @@ class Context:
         assert len(states) <= context_length
         self._states = states
         self._actions = actions
+        self._context_length = context_length
 
     @property
     def states(self):
@@ -68,24 +77,29 @@ class Context:
         :return: matrix representation for this context, shape of (CONTEXT_LENGTH, STATE_SHAPE[0]+NUM_ACTIONS)
         """
         # number of missing actions/states
-        missing_context = len(self.states) - self.context_length
+        missing_context = self.context_length - len(self.actions)
+        logger.debug("Missing {}-{}={} turns for context".format(
+            self.context_length,
+            len(self.actions),
+            missing_context
+        ))
         ret = []
         if self.states is not None and self.actions is not None:
             for state, action in zip(self.states, self.actions):
-                ret.append([
-                    Context._single_state_as_vector_data(state),
-                    action.action_vector
-                ])
+                entry = numpy.concatenate((state.as_vector(), action.as_vector()))
+                ret.append(entry)
         # a single context vector entry consists of a state and action both as vectors and concatenated
-        padding = numpy.zeros(STATE_SHAPE[0] + NUM_ACTIONS) * missing_context
-        return ret + padding
+        padding = numpy.zeros((missing_context, STATE_SHAPE[0] + NUM_ACTIONS))
+        ret = numpy.array(ret)
+        logger.debug("Shape of known contexts is {}, while shape of padding is {}".format(ret.shape, padding.shape))
+        if len(ret is not 0):
+            ret = numpy.concatenate((ret, padding))
+        else:
+            ret = padding
+        return ret
 
     @staticmethod
-    def _single_state_as_vector_data(state):
-        return [state.intent_vector, state.sentiment, state.user_profile_vector]
-
-    @staticmethod
-    def get_contexts_from_turns(turns: List[Turn], context_length: int = CONTEXT_LENGTH) -> List["Context"]:
+    def get_contexts_from_turns(turns: List[Turn], context_length: int = CONTEXT_LENGTH) -> numpy.ndarray:
         """
         This methods parameters are ordering sensitive! Read below for more information
         Creates Context objects from a list of Turns. The list of Turns needs to be in correct order, i.e.
@@ -96,11 +110,16 @@ class Context:
         """
         contexts = []
         num_turns = len(turns)
-        turns = reversed(turns)
+        turns = turns[::-1]
         for i, turn in enumerate(turns):
             remaining_turns = min(num_turns - i, context_length)
             turns_slice = turns[i:i + remaining_turns]
-            states = [turn.user for turn in turns_slice]
-            actions = [turn.bot.action_vector for turn in turns_slice]
-            contexts.append(Context(states, actions, context_length))
-        return contexts
+            contexts.append(Context.get_single_context(turns_slice, context_length))
+        return numpy.array(contexts)
+
+    @staticmethod
+    def get_single_context(turns, context_length: int = CONTEXT_LENGTH):
+        assert len(turns) <= CONTEXT_LENGTH
+        states = [turn.user for turn in turns]
+        actions = [turn.bot for turn in turns]
+        return Context(states, actions, context_length)

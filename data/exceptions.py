@@ -18,4 +18,5 @@ class NoActionIntentError(IntentError):
 
 
 class TurnNotUsable(Exception):
-    pass
+    def __init__(self, root: Exception = None):
+        self.root = root

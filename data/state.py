@@ -1,4 +1,6 @@
+import numpy
 from keras.utils import to_categorical
+from numpy.core.multiarray import ndarray
 
 from bot.config import INTENTS, NUM_INTENTS
 from data.exceptions import NoStateIntentError
@@ -22,18 +24,26 @@ class State:
         if sentence is not None:
             assert isinstance(sentence, Sentence)
             self.intent_vector = State._intent_vector_from_sentence(sentence)
-            self.sentiment = sentence.sentiment
+            self.sentiment = float(sentence.sentiment)
             self.user_profile_vector = State._convert_user_profile(sentence.user_profile)
 
+    def as_vector(self):
+        return numpy.concatenate((
+            self.intent_vector,
+            numpy.array([self.sentiment]),
+            self.user_profile_vector
+        ))
+
     @staticmethod
-    def _intent_vector_from_sentence(sentence: Sentence):
+    def _intent_vector_from_sentence(sentence: Sentence) -> ndarray:
         if sentence.intent is None:
             intent_name = 'common.unknown'
         else:
             intent_name = sentence.intent.template.name
         if intent_name not in INTENTS:
             raise NoStateIntentError(sentence.intent)
-        return to_categorical(y=INTENTS.index(intent_name), num_classes=NUM_INTENTS)
+        # to_categorical returns a matrix, only take the first column
+        return to_categorical(y=INTENTS.index(intent_name), num_classes=NUM_INTENTS)[0]
 
     @staticmethod
     def _convert_user_profile(user_profile: UserProfile):
@@ -42,4 +52,4 @@ class State:
                         user_profile.has_favourite_player,
                         user_profile.has_favourite_team,
                         user_profile.is_active_player]
-        return [1 if x is not None else 0 for x in user_profile]
+        return numpy.array([1 if x is not None else 0 for x in user_profile])
