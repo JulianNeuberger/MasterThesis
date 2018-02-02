@@ -4,12 +4,13 @@ import numpy
 from django.contrib.auth.models import User
 
 from bot.bot import QueryableModel
-from bot.config import CONTEXT_LENGTH, ACTIONS
+from bot.config import CONTEXT_LENGTH, ACTIONS, ACTION_SENTENCES
 from chat.models import Message, Chat
 from data.context import Context
 from data.state import State
 from data.turn import Turn
 from turns.models import Sentence
+from turns.util import update_all_for_single_sentence
 
 logger = logging.getLogger('bot')
 
@@ -35,8 +36,9 @@ class BotListener:
         context = Context.get_single_context(turns, CONTEXT_LENGTH)
         logger.debug('Successfully created context "{}" from turns'.format(context))
 
-        logger.debug('Querying the model...')
-        action = self._model.query([State(sentence)], [context])[0]
+        state = State(sentence)
+        logger.debug('Querying the model with state {} and context {}'.format(state, context))
+        action = self._model.query([state], [context])[0]
         logger.debug('Done querying! Raw result is: {}'.format(action))
         action = ACTIONS[numpy.argmax(action)]
         logger.debug('This results in action with name {}'.format(action))
@@ -46,7 +48,11 @@ class BotListener:
 
         logger.debug('Will send the action to user "{}" in chat "{}"'.format(human_user, chat))
 
-        message = Message.objects.create(value=action, sent_by=self._user, sent_in=chat)
+        sentence_value = ACTION_SENTENCES[action]
+        message = Message.objects.create(value=sentence_value, sent_by=self._user, sent_in=chat)
+        dialogue = sentence.said_in
+        sentence = Sentence.objects.create(value=sentence_value, said_in=dialogue)
+        sentence = update_all_for_single_sentence(sentence, True)
 
         logger.debug('Sending message "{}"'.format(message))
         logger.info('Responded to sentence "{}"({}) with action "{}". Done processing message!'.format(

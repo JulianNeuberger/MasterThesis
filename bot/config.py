@@ -73,6 +73,39 @@ ACTIONS = [
 ]
 NUM_ACTIONS = len(ACTIONS)
 
+ACTION_SENTENCES = {
+    'common.bad': 'That\'s bad...',
+    'common.bye': 'Bye!',
+    'common.good': 'That is good!',
+    'common.have_fun': 'Have fun!',
+    'common.hi': 'Hello!',
+    'common.how_are_you': 'How are you?',
+    'common.im_fine': 'I am fine, thank you!',
+    'common.no': 'No.',
+    'common.thanks': 'Thank you!',
+    'common.yes': 'Yes.',
+    'common.you_are_welcome': 'You are welcome!',
+    'commons.more': 'Can I do anything else for you?',
+    'commons.nice_to_meet_you': 'Nice to meet you!',
+    'commons.sorry': 'Sorry!',
+    'offer.player.news': 'I can show you news about this player!',
+    'reaction.bad_you_didnt_like': 'Too bad you didn\'t like that...',
+    'reaction.glad_you_liked_it': 'I am glad you liked it!',
+    'response.abilities': 'I can show you news about your favorite players and answer questions about them!',
+    'response.bot': 'I am a bot, but I am not planning on taking over the world',
+    'response.list.jerseys': 'I know about all kinds of jerseys of Bayern, Juventus and Barca',
+    'response.list.players': 'I know about Thomas Müller, Cristiano Ronaldo and many more',
+    'response.player.information.age': 'Thomas Müller is 28 years old.',
+    'response.player.information.goals': 'Thomas Müller scored 35 times in total last season.',
+    'response.player.information.height': 'Thomas Müller is 1.86m tall.',
+    'response.player.information.shoe': 'Thomas Müller wears the Adidas X 17.1',
+    'response.player.news': 'Have you seen this video of Thomas Müller?',
+    'userprofile.query.active': 'Are you an active soccer player?',
+    'userprofile.query.age': 'How old are you?',
+    'userprofile.query.fan': 'Are you a soccer fan?',
+    'userprofile.query.name': 'What\'s your name?',
+}
+
 # currently scalar
 SENTIMENT_LEN = 1
 

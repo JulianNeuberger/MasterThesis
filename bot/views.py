@@ -1,8 +1,9 @@
 from django.http import HttpResponse
 
+from bot.bot import QueryableModel
 from bot.training import train_new_imagination_model
 
 
 def training_view(request):
-    model = train_new_imagination_model()
+    QueryableModel().train()
     return HttpResponse('model trained')

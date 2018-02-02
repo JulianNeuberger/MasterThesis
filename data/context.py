@@ -92,7 +92,7 @@ class Context:
         padding = numpy.zeros((missing_context, STATE_SHAPE[0] + NUM_ACTIONS))
         ret = numpy.array(ret)
         logger.debug("Shape of known contexts is {}, while shape of padding is {}".format(ret.shape, padding.shape))
-        if len(ret is not 0):
+        if len(ret) is not 0:
             ret = numpy.concatenate((ret, padding))
         else:
             ret = padding

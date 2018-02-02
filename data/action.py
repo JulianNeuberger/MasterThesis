@@ -6,7 +6,7 @@ from turns.models import Sentence
 
 
 class Action:
-    action_vector = None
+    _action_vector = None
     reward = 0
     terminal = False
 

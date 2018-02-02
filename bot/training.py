@@ -13,6 +13,7 @@ from data.processing import load_dumped
 from data.state import State
 
 logger = logging.getLogger('bot')
+graph = None
 
 
 def train_new_imagination_model():
@@ -25,7 +26,7 @@ def train_new_imagination_model():
     tensor_board_callback.set_model(model)
 
     train_contexts, test_contexts = load_dumped()
-    train_on_contexts(model, train_contexts, test_contexts, [tensor_board_callback])
+    train(model, train_contexts, test_contexts, [tensor_board_callback])
 
     return model
 
@@ -47,7 +48,7 @@ def get_quality_for_context(context: Context, model: Model):
         return action.reward + DISCOUNT * model.predict(batch)[0]
 
 
-def train_on_contexts(model: Model, train_contexts, test_contexts=None, callbacks=None):
+def train(model: Model, train_contexts, test_contexts=None, callbacks=None):
     train_xs, train_ys = get_data(train_contexts, model)
     if test_contexts is not None:
         tests_xs, tests_ys = get_data(test_contexts, model)
@@ -58,6 +59,7 @@ def train_on_contexts(model: Model, train_contexts, test_contexts=None, callback
     model.fit(train_xs, train_ys,
               batch_size=BATCH_SIZE, epochs=NUM_EPOCHS,
               callbacks=callbacks)
+    return model
 
 
 def predict(model: Model, states: Iterable[State], contexts: Iterable[Context]):

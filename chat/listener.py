@@ -9,7 +9,7 @@ from bot.config import SECONDS_FOR_TERMINAL, SECONDS_PER_DAY
 from bot.listener import BotListener
 from events.listener import BaseMessageEvent
 from turns.models import Sentence, Dialogue
-from turns.util import update_all_for_single_sentence
+from turns.util import update_all_for_single_sentence, update_user_profile_for_single_dialogue
 
 logger = logging.getLogger('chat')
 
@@ -30,11 +30,24 @@ class CustomChatEventsListener:
         dialogue, _ = Dialogue.objects.get_or_create(with_user=sent_to.username)
         sentence = Sentence(value=event.message, said_by=event.username, said_in=dialogue)
         sentence = update_all_for_single_sentence(sentence, save=True)
+        update_user_profile_for_single_dialogue(sentence.said_in, False, True)
+        sentence.refresh_from_db()
         logger.info('Notified chat bot endpoint.')
         self._bot_listener.notify(sentence)
 
 
 class TurnsTerminator(Thread):
+    """
+    Periodically checks for terminated Dialogues, e.g. checks the last Sentence in a Dialogue
+    and sets it to terminated, if there is no followup sentence for a while. Useful for
+    training purposes, an episode of training memories could be generated as soon as we find a
+    new terminated Dialogue.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.daemon = True
+
     def run(self):
         logger.info("Started TurnsTerminator.")
         while True:

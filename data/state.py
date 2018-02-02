@@ -1,3 +1,5 @@
+import logging
+
 import numpy
 from keras.utils import to_categorical
 from numpy.core.multiarray import ndarray
@@ -5,6 +7,8 @@ from numpy.core.multiarray import ndarray
 from bot.config import INTENTS, NUM_INTENTS
 from data.exceptions import NoStateIntentError
 from turns.models import Sentence, UserProfile
+
+logger = logging.getLogger('data')
 
 
 class State:
@@ -41,12 +45,13 @@ class State:
         else:
             intent_name = sentence.intent.template.name
         if intent_name not in INTENTS:
-            raise NoStateIntentError(sentence.intent)
+            return numpy.zeros(NUM_INTENTS)
         # to_categorical returns a matrix, only take the first column
         return to_categorical(y=INTENTS.index(intent_name), num_classes=NUM_INTENTS)[0]
 
     @staticmethod
     def _convert_user_profile(user_profile: UserProfile):
+        logger.debug('Converting user profile "{}" to vector...'.format(user_profile))
         user_profile = [user_profile.name,
                         user_profile.age,
                         user_profile.has_favourite_player,

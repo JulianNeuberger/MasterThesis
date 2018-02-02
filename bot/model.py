@@ -17,21 +17,22 @@ def get_quality_model(state, contexts) -> Layer:
 
     x = Flatten()(x)
 
-    x = Dense(units=64)([state, x])
+    x = Concatenate()([state, x])
+    x = Dense(units=64)(x)
 
     predicted_quality = Dense(units=NUM_ACTIONS, use_bias=True, activation='linear')(x)
     return predicted_quality
 
 
-def get_environment_model(contexts: Layer, state: Layer, lookahead=IMAGINATION_DEPTH) -> Layer:
+def get_environment_model(state: Layer, context: Layer, lookahead=IMAGINATION_DEPTH) -> Layer:
     # output for the aggregator
     new_states = []
     predicted_rewards = []
 
     for t in range(0, lookahead):
-        predicted_action = get_quality_model(state, contexts)
+        predicted_action = get_quality_model(state, context)
 
-        x = Flatten()(contexts)
+        x = Flatten()(context)
         x = Concatenate()([state, x, predicted_action])
 
         predicted_reward = \
@@ -56,9 +57,9 @@ def get_environment_model(contexts: Layer, state: Layer, lookahead=IMAGINATION_D
         )
         predicted_context = Reshape(target_shape=(1, STATE_SHAPE[0] + NUM_ACTIONS,))(predicted_context)
 
-        contexts = Reshape(target_shape=CONTEXT_SHAPE)(contexts)
-        contexts = Lambda(push_context, output_shape=push_context_out_shape, name='contexts_t{}'.format(t + 1))(
-            [contexts, predicted_context])
+        context = Reshape(target_shape=CONTEXT_SHAPE)(context)
+        context = Lambda(push_context, output_shape=push_context_out_shape, name='context_t{}'.format(t + 1))(
+            [context, predicted_context])
 
         state = predicted_state
 
@@ -88,21 +89,21 @@ def get_encoder(states: List[Layer], rewards: List[Layer]) -> List[Layer]:
 
 
 def get_imagination_model() -> Model:
-    contexts = Input(shape=CONTEXT_SHAPE)
-    state = Input(shape=STATE_SHAPE)
+    context = Input(name='context_input', shape=CONTEXT_SHAPE)
+    state = Input(name='state_input', shape=STATE_SHAPE)
 
-    imagination = get_environment_model(state, contexts)
-    model_free_path = get_quality_model(state, contexts)
+    imagination = get_environment_model(state, context)
+    model_free_path = get_quality_model(state, context)
 
     x = Concatenate()([imagination, model_free_path])
 
     combined_quality = Dense(units=NUM_ACTIONS, activation='linear', use_bias=True)(x)
 
-    return Model(inputs=[contexts], outputs=[combined_quality])
+    return Model(inputs=[state, context], outputs=[combined_quality])
 
 
 def get_action_model() -> Model:
-    context = Input(name='contexts_input', shape=CONTEXT_SHAPE)
+    context = Input(name='context_input', shape=CONTEXT_SHAPE)
     state = Input(name='state_input', shape=STATE_SHAPE)
 
     x = Conv1D(filters=64, kernel_size=(3,), use_bias=False, activation='relu', padding='valid')(context)
