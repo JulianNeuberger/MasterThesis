@@ -68,11 +68,14 @@ class QueryableModel(metaclass=Singleton):
         :return: an Integer representing the selected action's index
         """
         with self._graph.as_default():
-            greedy = (1 - self.current_epsilon()) + (self.current_epsilon() / NUM_ACTIONS) >= random.random()
+            greedy_prob = (1 - self.current_epsilon()) + (self.current_epsilon() / NUM_ACTIONS)
+            greedy = greedy_prob >= random.random()
             if greedy:
+                logger.info('Picking action greedily, with probability of {:.4%}'.format(greedy_prob))
                 action = self.predict([state], [context])[0]
                 return numpy.argmax(action)
             else:
+                logger.info('Picking action random, with probability of {:.4%}'.format(greedy_prob))
                 return random.randint(0, NUM_ACTIONS - 1)
 
     def train(self, transitions):
