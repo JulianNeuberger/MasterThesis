@@ -75,7 +75,7 @@ class QueryableModel(metaclass=Singleton):
                 action = self.predict([state], [context])[0]
                 return numpy.argmax(action)
             else:
-                logger.info('Picking action random, with probability of {:.4%}'.format(greedy_prob))
+                logger.info('Picking action random, with probability of {:.4%}'.format(1 - greedy_prob))
                 return random.randint(0, NUM_ACTIONS - 1)
 
     def train(self, transitions):
