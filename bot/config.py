@@ -130,16 +130,18 @@ BATCH_SIZE = 32
 NUM_EPOCHS = 1
 TEST_RATIO = .3
 
-DISCOUNT = .99
 START_DISCOUNT = .99
 END_DISCOUNT = .9
 END_DISCOUNT_EPISODES = 20
+
+START_EPSILON = .1
+END_EPSILON = .001
+END_EPSILON_EPISODES = 200
 
 # time to wait for another message after an "commons.bye" before marking a message as terminal (ending conversation)
 SECONDS_FOR_TERMINAL = 60
 SECONDS_PER_DAY = 3600 * 24
 SENTENCE_BUFFER_SIZE = BATCH_SIZE
-
 
 WEIGHTS_DIR = "./bot/weights"
 IMAGINATION_MODEL_LATEST_WEIGHTS_FILE = os.path.join(WEIGHTS_DIR, 'imagination_latest.pkl')

@@ -60,7 +60,7 @@ def train(model: Model, train_data: List[Transition], test_data: List[Transition
     return model
 
 
-def predict(model: Model, states: Iterable[State], contexts: Iterable[Context]):
+def predict(model, states: Iterable[State], contexts: Iterable[Context]):
     contexts = numpy.array([context.as_matrix() for context in contexts])
     states = numpy.array([state.as_vector() for state in states])
     return model.predict({
