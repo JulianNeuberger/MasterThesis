@@ -27,12 +27,12 @@ class Action:
         return self._action_vector
 
     def to_quality_vector(self, model, state_t0, context, state_t1):
-        q_t1 = model.query([state_t0], [context])[0]
+        q_t1 = model.predict([state_t0], [context])[0]
         if self.terminal:
             q_t1[self._action_index] = self.reward
         else:
             context = context.push(state_t0, self)
-            q_t2 = model.query([state_t1], [context])[0]
+            q_t2 = model.predict([state_t1], [context])[0]
             best_action_index = numpy.argmax(q_t2)
             q_t1[self._action_index] = self.reward + model.current_discount() * q_t2[best_action_index]
         return q_t1

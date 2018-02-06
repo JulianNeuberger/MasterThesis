@@ -8,12 +8,12 @@ import numpy
 import tensorflow as tf
 
 from bot.callbacks import DiscountCallback, EpsilonCallback
-from bot.config import IMAGINATION_MODEL_LATEST_WEIGHTS_FILE, BACKUP_WEIGHTS_FILE, NUM_ACTIONS
+from bot.config import IMAGINATION_MODEL_LATEST_WEIGHTS_FILE, BACKUP_WEIGHTS_FILE, NUM_ACTIONS, BATCH_SIZE, NUM_EPOCHS
 from bot.model import get_imagination_model
-from bot.training import predict, train
 from data.context import Context
 from data.state import State
 from events.util import Singleton
+from turns.transition import Transition
 
 logger = logging.getLogger("bot")
 
@@ -52,7 +52,12 @@ class QueryableModel(metaclass=Singleton):
         :return: an array of quality vectors for each input row (state/context pair)
         """
         with self._graph.as_default():
-            return predict(self._model, states, contexts)
+            contexts = numpy.array([context.as_matrix() for context in contexts])
+            states = numpy.array([state.as_vector() for state in states])
+            return self._model.predict({
+                'state_input': states,
+                'context_input': contexts
+            }, batch_size=BATCH_SIZE)
 
     def query(self, state: State, context: Context):
         """
@@ -65,14 +70,14 @@ class QueryableModel(metaclass=Singleton):
         with self._graph.as_default():
             greedy = (1 - self.current_epsilon()) + (self.current_epsilon() / NUM_ACTIONS) >= random.random()
             if greedy:
-                action = predict(self._model, numpy.array([state]), numpy.array([context]))[0]
+                action = self.predict([state], [context])[0]
                 return numpy.argmax(action)
             else:
                 return random.randint(0, NUM_ACTIONS - 1)
 
     def train(self, transitions):
         with self._graph.as_default():
-            train(self._model, transitions, callbacks=[self._discount_callback, self._epsilon_callback])
+            self._train(transitions, callbacks=[self._discount_callback, self._epsilon_callback])
             QueryableModel._backup_weights()
             QueryableModel._save_weights(self._model)
 
@@ -87,3 +92,32 @@ class QueryableModel(metaclass=Singleton):
         logger.info('Saving current weights...')
         model.save_weights(IMAGINATION_MODEL_LATEST_WEIGHTS_FILE)
         logger.info('Successfully saved weights.')
+
+    def _train(self, train_data, test_data=None, callbacks=None):
+        """
+            Trains a given model
+            :param train_data: data to train the model with
+            :param test_data: (optional) data to evaluate and calculate val_loss against
+            :param callbacks: (optional) callbacks, will be passed to keras.fit callbacks
+            :return: the original model with updated weights
+            """
+        states, contexts, qualities = Transition.transitions_to_data(train_data, self)
+        if test_data is not None:
+            logger.info("Training with validation data: {}".format(test_data))
+            test_states, test_contexts, test_qualities = Transition.transitions_to_data(test_data, self)
+            self._model.fit({'state_input': states, 'context_input': contexts}, qualities,
+                            batch_size=BATCH_SIZE, epochs=NUM_EPOCHS,
+                            validation_data=(
+                                {
+                                    'state_input': test_states,
+                                    'context_input': test_contexts
+                                },
+                                test_qualities
+                            ),
+                            callbacks=callbacks)
+        else:
+            logger.warning("Training without validation data. This will tamper with logs for tensor board!")
+            self._model.fit({'state_input': states, 'context_input': contexts}, qualities,
+                            batch_size=BATCH_SIZE, epochs=NUM_EPOCHS,
+                            callbacks=callbacks)
+        return self._model

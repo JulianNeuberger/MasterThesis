@@ -19,6 +19,7 @@ class OvertimeParameterCallback(Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         super().on_epoch_end(epoch, logs)
+        self._current_step += 1
         self._update_value()
 
     @property
@@ -32,7 +33,7 @@ class EpsilonCallback(OvertimeParameterCallback):
 
     def _update_value(self):
         prev_value = self._value
-        self._value = self._value() / self._current_step
+        self._value = self._value / self._current_step
         logger.debug('Updating epsilon for epoch number {}, it is now {} (was {})'
                      .format(self._current_step, self._value, prev_value))
 

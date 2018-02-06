@@ -1,5 +1,6 @@
 from typing import List, Tuple
 
+import numpy
 from numpy.core.multiarray import ndarray
 
 from bot.config import CONTEXT_LENGTH
@@ -18,6 +19,18 @@ class Transition:
         self.state_t1 = state_t1
         self.action_t0 = action_t0
         self.context_t0 = context_t0
+
+    @staticmethod
+    def transitions_to_data(transitions: List["Transition"], model):
+        states = []
+        contexts = []
+        qualities = []
+        for transition in transitions:
+            state, context, quality = transition.to_data_tuple(model)
+            states.append(state)
+            contexts.append(context)
+            qualities.append(quality)
+        return numpy.array(states), numpy.array(contexts), numpy.array(qualities)
 
     def to_data_tuple(self, model) -> Tuple[ndarray, ndarray, ndarray]:
         """

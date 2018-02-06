@@ -1,6 +1,5 @@
 import logging
 
-import numpy
 from django.contrib.auth.models import User
 
 from bot.bot import QueryableModel
@@ -58,9 +57,8 @@ class BotListener(metaclass=Singleton):
 
         state = State(sentence)
         logger.debug('Querying the model with state {} and context {}'.format(state, context))
-        action = self._model.query([state], [context])[0]
-        logger.debug('Done querying! Raw result is: {}'.format(action))
-        action = ACTIONS[numpy.argmax(action)]
+        action_index = self._model.query(state, context)
+        action = ACTIONS[action_index]
         logger.debug('This results in action with name {}'.format(action))
 
         human_user = User.objects.get(username=sentence.said_by)
