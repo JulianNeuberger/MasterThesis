@@ -84,8 +84,11 @@ class QueryableModel(metaclass=Singleton):
     @staticmethod
     def _backup_weights():
         logger.info('Backing up weight file...')
-        copyfile(IMAGINATION_MODEL_LATEST_WEIGHTS_FILE, BACKUP_WEIGHTS_FILE)
-        logger.info('Successfully backed up weights.')
+        if os.path.isfile(IMAGINATION_MODEL_LATEST_WEIGHTS_FILE):
+            copyfile(IMAGINATION_MODEL_LATEST_WEIGHTS_FILE, BACKUP_WEIGHTS_FILE)
+            logger.info('Successfully backed up weights.')
+        else:
+            logger.info('No weight file found!')
 
     @staticmethod
     def _save_weights(model):

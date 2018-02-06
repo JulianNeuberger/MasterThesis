@@ -46,6 +46,6 @@ class DiscountCallback(OvertimeParameterCallback):
 
     def _update_value(self):
         prev_value = self._value
-        self._value = self._start + ((self._start - self._end) / self._end_steps) * self._current_step
+        self._value = self._start - ((self._start - self._end) / self._end_steps) * self._current_step
         logger.debug('Updating discount for epoch number {}, it is now {} (was {})'
                      .format(self._current_step, self._value, prev_value))
