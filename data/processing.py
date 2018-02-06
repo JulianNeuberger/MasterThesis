@@ -2,11 +2,12 @@ import logging
 from pickle import dump, load
 
 import numpy
+from django.contrib.auth.models import User
 
-from bot.config import TEST_RATIO
-from data.context import Context
+from bot.config import TEST_RATIO, CONTEXT_LENGTH
 from data.turn import Turn
 from turns.models import Sentence
+from turns.transition import Transition
 
 logger = logging.getLogger('data')
 
@@ -31,9 +32,9 @@ def dump_data(data):
 def run_pre_processing():
     sentences = Sentence.objects.order_by('said_in', 'said_on').all()
     logger.info('Pre processing {} sentences'.format(len(sentences)))
-    turns = Turn.sentences_to_turns(sentences)
-    contexts = Context.get_contexts_from_turns(turns)
-    # contexts = [context.as_matrix() for context in contexts]
-    contexts = numpy.array(contexts)
-    contexts = test_train_split_numpy_array(contexts)
-    dump_data(contexts)
+    bot_user = User.object.get(username='Chatbot')
+    turns = Turn.sentences_to_turns(sentences, bot_user)
+    transitions = Transition.all_transitions_from_turns(turns, CONTEXT_LENGTH)
+    transitions = numpy.array(transitions)
+    transitions = test_train_split_numpy_array(transitions)
+    dump_data(transitions)

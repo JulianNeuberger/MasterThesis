@@ -1,16 +1,17 @@
 import logging
 from datetime import datetime
-from typing import List, Tuple, Iterable
+from typing import List, Iterable
 
 import numpy
 from keras.callbacks import TensorBoard
 from keras.engine import Model
 
-from bot.config import ACTIONS, BATCH_SIZE, NUM_EPOCHS, DISCOUNT
+from bot.config import ACTIONS, BATCH_SIZE, NUM_EPOCHS
 from bot.model import get_imagination_model
 from data.context import Context
 from data.processing import load_dumped
 from data.state import State
+from turns.transition import Transition
 
 logger = logging.getLogger('bot')
 graph = None
@@ -18,47 +19,44 @@ graph = None
 
 def train_new_imagination_model():
     model = get_imagination_model()
-    model.compile(optimizer='sgd', loss='binary_crossentropy')
-    model.summary()
-
     tensor_board_callback = TensorBoard(log_dir='./logs/{:%d-%m-%Y %H-%M}/'.format(datetime.now()),
                                         batch_size=BATCH_SIZE)
     tensor_board_callback.set_model(model)
 
-    train_contexts, test_contexts = load_dumped()
-    train(model, train_contexts, test_contexts, [tensor_board_callback])
+    train_data, test_data = load_dumped()
+    train(model, train_data, test_data, [tensor_board_callback])
 
     return model
 
 
-def get_data(contexts: List[Context], model: Model) -> Tuple[numpy.ndarray, numpy.ndarray]:
-    xs = numpy.array([context.as_matrix() for context in contexts])
-    ys = numpy.array([get_quality_for_context(context, model) for context in contexts])
-    return xs, ys
-
-
-def get_quality_for_context(context: Context, model: Model):
-    _, action = context.states[0], context.actions[0]
-    if action.terminal:
-        return action.reward
-    else:
-        batch = numpy.array(
-            [context.as_matrix()]
-        )
-        return action.reward + DISCOUNT * model.predict(batch)[0]
-
-
-def train(model: Model, train_contexts, test_contexts=None, callbacks=None):
-    train_xs, train_ys = get_data(train_contexts, model)
-    if test_contexts is not None:
-        tests_xs, tests_ys = get_data(test_contexts, model)
-        model.fit(train_xs, train_ys,
+def train(model: Model, train_data: List[Transition], test_data: List[Transition] = None, callbacks=None):
+    """
+    Trains a given model
+    :param model: the model to train
+    :param train_data: data to train the model with
+    :param test_data: data to evaluate and calculate val_loss against
+    :param callbacks: callbacks, will be passed to keras.fit callbacks
+    :return: the original model with updated weights
+    """
+    states, contexts, qualities = transitions_to_data(train_data, model)
+    if test_data is not None:
+        logger.info("Training with validation data: {}".format(test_data))
+        test_states, test_contexts, test_qualities = transitions_to_data(test_data, model)
+        model.fit({'state_input': states, 'context_input': contexts}, qualities,
                   batch_size=BATCH_SIZE, epochs=NUM_EPOCHS,
-                  validation_data=(tests_xs, tests_ys),
+                  validation_data=(
+                      {
+                          'state_input': test_states,
+                          'context_input': test_contexts
+                      },
+                      test_qualities
+                  ),
                   callbacks=callbacks)
-    model.fit(train_xs, train_ys,
-              batch_size=BATCH_SIZE, epochs=NUM_EPOCHS,
-              callbacks=callbacks)
+    else:
+        logger.warning("Training without validation data. This will tamper with logs for tensor board!")
+        model.fit({'state_input': states, 'context_input': contexts}, qualities,
+                  batch_size=BATCH_SIZE, epochs=NUM_EPOCHS,
+                  callbacks=callbacks)
     return model
 
 
@@ -69,6 +67,18 @@ def predict(model: Model, states: Iterable[State], contexts: Iterable[Context]):
         'state_input': states,
         'context_input': contexts
     }, batch_size=BATCH_SIZE)
+
+
+def transitions_to_data(transitions: List[Transition], model: Model):
+    states = []
+    contexts = []
+    qualities = []
+    for transition in transitions:
+        state, context, quality = transition.to_data_tuple(model)
+        states.append(state)
+        contexts.append(context)
+        qualities.append(quality)
+    return numpy.array(states), numpy.array(contexts), numpy.array(qualities)
 
 
 def prettify_action_qualities(vector):

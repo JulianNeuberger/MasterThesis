@@ -172,12 +172,12 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': 'WARNING',
             'formatter': 'default',
         },
         'django.server': {
             'handlers': ['django.server'],
-            'level': 'INFO',
+            'level': 'WARNING',
             'formatter': 'default',
             'propagate': False,
         },

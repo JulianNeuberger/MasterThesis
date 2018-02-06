@@ -85,14 +85,17 @@ def update_intent_for_single_sentence(sentence: Sentence, override=False, save=T
         try:
             meta_data = result['metadata']
             intent_id = meta_data['intentId']
+            logger.debug('Successfully read intent id from response.')
             intent_template = IntentTemplate.objects.get(dialog_flow_id=intent_id)
             intent = Intent.objects.create(template=intent_template)
             sentence.intent = intent
             parameters = result['parameters']
+            logger.debug('Successfully read parameters from response.')
             for entity_template in intent_template.slottemplate_set.all():
                 entity_value = parameters[entity_template.name]
                 Slot.objects.create(template=entity_template, intent=intent, value=entity_value)
         except KeyError:
+            logger.debug('Failed to read response, no intent available.')
             sentence.intent = None
         intent_name = sentence.intent.template.name if sentence.intent is not None else 'unknown_intent'
         logger.debug("New intent for sentence '{}' is {}".format(sentence.value, intent_name))

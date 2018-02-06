@@ -1,7 +1,7 @@
 from typing import List
 
 import keras.backend as K
-from keras.layers import Concatenate, Dense, Input, Layer, Conv1D, Flatten, Dropout, MaxPool1D, Reshape, Lambda
+from keras.layers import Concatenate, Dense, Input, Layer, Conv1D, Flatten, Reshape, Lambda
 from keras.models import Model
 
 from bot.config import NUM_ACTIONS, IMAGINATION_DEPTH, NUM_INTENTS, SENTIMENT_LEN, \
@@ -99,28 +99,10 @@ def get_imagination_model() -> Model:
 
     combined_quality = Dense(units=NUM_ACTIONS, activation='linear', use_bias=True)(x)
 
-    return Model(inputs=[state, context], outputs=[combined_quality])
+    model = Model(inputs=[state, context], outputs=[combined_quality])
+    model.compile(optimizer='sgd', loss='binary_crossentropy')
 
-
-def get_action_model() -> Model:
-    context = Input(name='context_input', shape=CONTEXT_SHAPE)
-    state = Input(name='state_input', shape=STATE_SHAPE)
-
-    x = Conv1D(filters=64, kernel_size=(3,), use_bias=False, activation='relu', padding='valid')(context)
-    x = Dropout(.5)(x)
-    x = MaxPool1D(pool_size=2, padding='valid')(x)
-    x = Conv1D(filters=128, kernel_size=(1,), use_bias=False, activation='relu', padding='valid')(x)
-    x = Dropout(.3)(x)
-    x = Conv1D(filters=128, kernel_size=(1,), use_bias=False, activation='relu', padding='valid')(x)
-    x = Dropout(.1)(x)
-    x = Conv1D(filters=64, kernel_size=(1,), use_bias=False, activation='relu', padding='valid')(x)
-
-    x = Flatten()(x)
-
-    x = Dense(units=128, activation='sigmoid')([state, x])
-
-    action = Dense(units=NUM_ACTIONS, activation='softmax', use_bias=True)(x)
-    return Model(inputs=[context], outputs=[action])
+    return model
 
 
 def push_context(x):

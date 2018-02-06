@@ -96,6 +96,8 @@ class Sentence(models.Model):
 
     raw_sentence = models.ForeignKey(Message, null=True)
 
+    used_in_training = models.BooleanField(default=False)
+
     said_on = models.DateTimeField(auto_now_add=True)
     said_by = models.CharField(max_length=64, null=False)
     said_in = models.ForeignKey(Dialogue, null=False)

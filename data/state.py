@@ -5,7 +5,6 @@ from keras.utils import to_categorical
 from numpy.core.multiarray import ndarray
 
 from bot.config import INTENTS, NUM_INTENTS
-from data.exceptions import NoStateIntentError
 from turns.models import Sentence, UserProfile
 
 logger = logging.getLogger('data')
@@ -21,14 +20,13 @@ class State:
         creates a new state, if sentence is given, the fields will be populated with values from this sentence
 
         :param sentence: an object of type Sentence, which will be used to populate the state
-
-        :raises NoStateIntentError: when the intent of an sentence is not in the set of state-intents,
-                aka. intents that can be said by the user
         """
         if sentence is not None:
             assert isinstance(sentence, Sentence)
+            self.intent_name = sentence.intent.template.name
             self.intent_vector = State._intent_vector_from_sentence(sentence)
             self.sentiment = float(sentence.sentiment)
+            self.user_profile = sentence.user_profile
             self.user_profile_vector = State._convert_user_profile(sentence.user_profile)
 
     def as_vector(self):
@@ -58,3 +56,10 @@ class State:
                         user_profile.has_favourite_team,
                         user_profile.is_active_player]
         return numpy.array([1 if x is not None else 0 for x in user_profile])
+
+    def __str__(self) -> str:
+        return '<State intent={}, sentiment={:.4f}, profile={}>'.format(
+            self.intent_name,
+            self.sentiment,
+            self.user_profile
+        )

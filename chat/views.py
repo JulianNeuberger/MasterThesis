@@ -61,23 +61,16 @@ class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     event_manager = ListenerManager()
 
-    # def create(self, request, *args, **kwargs):
-    #     serializer = self.get_serializer(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     message_instance = self.perform_create(serializer)
-    #     headers = self.get_success_headers(serializer.data)
-    #     self.event_manager.notify_listeners(
-    #         BaseMessageEvent(
-    #             instance=message_instance
-    #         )
-    #     )
-    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
     def perform_update(self, serializer):
+        logger.debug('Got updated message, notifying all.')
         instance = serializer.save()
+        self.event_manager.notify_all(
+            ChatMessageEvent(message_instance=instance)
+        )
         return instance
 
     def perform_create(self, serializer):
+        logger.debug('Got new message, notifying all.')
         instance = serializer.save()
         self.event_manager.notify_all(
             ChatMessageEvent(message_instance=instance)

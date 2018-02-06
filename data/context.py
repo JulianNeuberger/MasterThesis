@@ -1,12 +1,12 @@
 import logging
-from typing import List
+from copy import copy
+from typing import List, Tuple
 
 import numpy
 
-from bot.config import CONTEXT_LENGTH, NUM_ACTIONS, STATE_SHAPE
+from bot.config import NUM_ACTIONS, STATE_SHAPE, CONTEXT_LENGTH
 from data.action import Action
 from data.state import State
-from data.turn import Turn
 
 logger = logging.getLogger('data')
 
@@ -63,10 +63,11 @@ class Context:
 
     @context_length.setter
     def context_length(self, new_val):
+        assert new_val >= 0, 'context length can not be less than 0'
         if self._actions is not None:
-            assert new_val >= len(self._actions)
+            assert new_val >= len(self._actions), 'New context length is shorter than the number of available actions!'
         if self._states is not None:
-            assert new_val >= len(self._states)
+            assert new_val >= len(self._states), 'New context length is shorter than the number of available states!'
         self._context_length = new_val
 
     def as_matrix(self) -> numpy.array:
@@ -98,28 +99,85 @@ class Context:
             ret = padding
         return ret
 
-    @staticmethod
-    def get_contexts_from_turns(turns: List[Turn], context_length: int = CONTEXT_LENGTH) -> numpy.ndarray:
+    def push(self, state: State, action: Action):
         """
-        This methods parameters are ordering sensitive! Read below for more information
-        Creates Context objects from a list of Turns. The list of Turns needs to be in correct order, i.e.
-        the newest (latest) Turn needs to be the last in the list.
-        :param turns: the turns to process into contexts, ordering matters, see above!
-        :param context_length: number of steps into the past, see parameter in Context.__init__
-        :return: a list of Context objects
+        Updates this context with a given state and action,
+        equivalent to the concept of "moving one step into the future"
+
+        Does not mutate the original object
+
+        :param state: the latest state (s_t-1)
+        :param action: the action that is taken in this state (a_t-1)
+        :return: the new context object, does not return the old one as mutation
         """
-        contexts = []
-        num_turns = len(turns)
-        turns = turns[::-1]
-        for i, turn in enumerate(turns):
-            remaining_turns = min(num_turns - i, context_length)
-            turns_slice = turns[i:i + remaining_turns]
-            contexts.append(Context.get_single_context(turns_slice, context_length))
-        return numpy.array(contexts)
+        context = copy(self)
+
+        if len(context.states) == context.context_length:
+            context.states.pop()
+        context.states.insert(0, state)
+
+        if len(context.actions) == context.context_length:
+            context.actions.pop()
+        context.actions.insert(0, action)
+
+        return context
+
+    # @staticmethod
+    # def get_contexts_from_turns(turns: List[Turn], context_length: int = CONTEXT_LENGTH) -> numpy.ndarray:
+    #     """
+    #     This methods parameters are ordering sensitive! Read below for more information
+    #     Creates Context objects from a list of Turns. The list of Turns needs to be in correct order, i.e.
+    #     the newest (latest) Turn needs to be the last in the list.
+    #     :param turns: the turns to process into contexts, ordering matters, see above!
+    #     :param context_length: number of steps into the past, see parameter in Context.__init__
+    #     :return: a list of Context objects
+    #     """
+    #     contexts = []
+    #     num_turns = len(turns)
+    #     turns = turns[::-1]
+    #     for i, turn in enumerate(turns):
+    #         remaining_turns = min(num_turns - i, context_length)
+    #         turns_slice = turns[i:i + remaining_turns]
+    #         contexts.append(Context.get_single_context(turns_slice, context_length))
+    #     return numpy.array(contexts)
 
     @staticmethod
     def get_single_context(turns, context_length: int = CONTEXT_LENGTH):
-        assert len(turns) <= CONTEXT_LENGTH
+        """
+        Creates a context object from turns, useful for training
+        :param turns: the Turns that make up the context, e.g. the turns prior to the current Sentence/State
+        :param context_length: number of steps into the past
+        :return: a Context object see __init__
+        """
+        assert len(turns) <= context_length
         states = [turn.user for turn in turns]
         actions = [turn.bot for turn in turns]
         return Context(states, actions, context_length)
+
+    def to_data_tuple(self) -> Tuple[State, "Context", Action]:
+        """
+        returns context as tuple of state, context with one less "past" step and action
+        :return: a Tuple of State, Context and Action used in training
+        """
+        context = copy(self)
+
+        logger.debug('Converting context of length {} with {} states and actions to data tuple'.format(
+            context.context_length,
+            len(context.actions)
+        ))
+
+        assert len(context.actions) > 0, 'Cannot convert empty context to data tuple'
+        before_num = len(context.actions)
+        action = context.actions.pop(0)
+        after_num = len(context.actions)
+        logger.debug('Truncating context actions from {} to {}'.format(
+            before_num,
+            after_num
+        ))
+
+        assert len(context.states) > 0, 'Cannot convert empty context to data tuple'
+        state = context.states.pop(0)
+
+        context.context_length = max(context.context_length - 1, 0)
+
+        return state, context, action

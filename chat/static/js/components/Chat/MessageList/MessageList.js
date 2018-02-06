@@ -40,7 +40,9 @@ export default class MessageList extends React.Component {
     }
 
     componentDidUpdate() {
-        this.scrollToEnd();
+        if ($(window).scrollTop() + $(window).height() == $(document).height()) {
+            this.scrollToEnd();
+        }
     }
 
     handleScroll(event) {
