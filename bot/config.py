@@ -143,3 +143,4 @@ SENTENCE_BUFFER_SIZE = BATCH_SIZE
 
 WEIGHTS_DIR = "./bot/weights"
 IMAGINATION_MODEL_LATEST_WEIGHTS_FILE = os.path.join(WEIGHTS_DIR, 'imagination_latest.pkl')
+BACKUP_WEIGHTS_FILE = os.path.join(WEIGHTS_DIR, 'imagination_latest.pkl.bkp')
