@@ -8,8 +8,9 @@ import numpy
 import tensorflow as tf
 
 from bot.callbacks import DiscountCallback, EpsilonCallback
-from bot.config import IMAGINATION_MODEL_LATEST_WEIGHTS_FILE, BACKUP_WEIGHTS_FILE, NUM_ACTIONS, BATCH_SIZE, NUM_EPOCHS
-from bot.model import get_imagination_model
+from bot.config import IMAGINATION_MODEL_LATEST_WEIGHTS_FILE, BACKUP_WEIGHTS_FILE, NUM_ACTIONS, BATCH_SIZE, NUM_EPOCHS, \
+    ACTIONS
+from bot.model import get_imagination_model, get_simple_model
 from data.context import Context
 from data.state import State
 from events.util import Singleton
@@ -30,7 +31,8 @@ class QueryableModel(metaclass=Singleton):
 
         :param load: bool, should weights be loaded form the default file? Defaults to True
         """
-        self._model = get_imagination_model()
+        # self._model = get_imagination_model()
+        self._model = get_simple_model()
         self._graph = tf.get_default_graph()
         self._discount_callback = DiscountCallback()
         self._epsilon_callback = EpsilonCallback()
@@ -69,10 +71,17 @@ class QueryableModel(metaclass=Singleton):
         """
         with self._graph.as_default():
             greedy_prob = (1 - self.current_epsilon()) + (self.current_epsilon() / NUM_ACTIONS)
-            greedy = greedy_prob >= random.random()
+            greedy = greedy_prob >= numpy.random.random()
             if greedy:
                 logger.info('Picking action greedily, with probability of {:.4%}'.format(greedy_prob))
+                logger.debug('Using state "{}" and context "{}"'.format(state, context))
                 action = self.predict([state], [context])[0]
+                logger.debug('Raw quality is {}, resulting in action "{}" with index {} and value {}'.format(
+                    action,
+                    ACTIONS[numpy.argmax(action)],
+                    numpy.argmax(action),
+                    max(action))
+                )
                 return numpy.argmax(action)
             else:
                 logger.info('Picking action random, with probability of {:.4%}'.format(1 - greedy_prob))

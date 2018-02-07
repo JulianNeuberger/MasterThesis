@@ -1,9 +1,13 @@
+import logging
+
 import numpy
 from keras.utils import to_categorical
 
 from bot.config import ACTIONS, NUM_ACTIONS
 from data.exceptions import NoIntentError, NoActionIntentError
 from turns.models import Sentence
+
+logger = logging.getLogger('data')
 
 
 class Action:
@@ -28,6 +32,7 @@ class Action:
 
     def to_quality_vector(self, model, state_t0, context, state_t1):
         q_t1 = model.predict([state_t0], [context])[0]
+        logger.debug('Original quality vector is {}'.format(q_t1))
         if self.terminal:
             q_t1[self._action_index] = self.reward
         else:
@@ -35,6 +40,7 @@ class Action:
             q_t2 = model.predict([state_t1], [context])[0]
             best_action_index = numpy.argmax(q_t2)
             q_t1[self._action_index] = self.reward + model.current_discount() * q_t2[best_action_index]
+        logger.debug('Target quality vector is {}'.format(q_t1))
         return q_t1
 
     @staticmethod
@@ -44,3 +50,9 @@ class Action:
         if sentence.intent.template.name not in ACTIONS:
             raise NoActionIntentError(sentence.intent, sentence)
         return to_categorical(y=ACTIONS.index(sentence.intent.template.name), num_classes=NUM_ACTIONS)[0]
+
+    def __str__(self) -> str:
+        return '<Action {}>'.format(ACTIONS[self._action_index])
+
+    def __format__(self, format_spec: str) -> str:
+        return self.__str__()

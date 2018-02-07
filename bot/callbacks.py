@@ -17,8 +17,8 @@ class OvertimeParameterCallback(Callback):
     def _update_value(self):
         raise NotImplementedError('You have to implement the _update_values function for an OvertimeParameterCallback')
 
-    def on_epoch_end(self, epoch, logs=None):
-        super().on_epoch_end(epoch, logs)
+    def on_batch_end(self, batch, logs=None):
+        super().on_batch_end(batch, logs)
         self._current_step += 1
         self._update_value()
 
@@ -33,7 +33,7 @@ class EpsilonCallback(OvertimeParameterCallback):
 
     def _update_value(self):
         prev_value = self._value
-        self._value = self._value / self._current_step
+        self._value = self._value / 1.1
         logger.debug('Updating epsilon for epoch number {}, it is now {} (was {})'
                      .format(self._current_step, self._value, prev_value))
 

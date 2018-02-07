@@ -181,3 +181,11 @@ class Context:
         context.context_length = max(context.context_length - 1, 0)
 
         return state, context, action
+
+    def __str__(self) -> str:
+        formatted_states = ['{}'.format(state) for state in self.states]
+        formatted_actions = ['{}'.format(action) for action in self.actions]
+        return '<Context states: "{}", actions "{}">'.format(formatted_states, formatted_actions)
+
+    def __format__(self, format_spec: str) -> str:
+        return super().__format__(format_spec)

@@ -2,6 +2,8 @@ import os
 
 INTENTS = [
     'common.unknown',
+
+    'common.what',
     'common.bad',
     'common.bye',
     'common.good',
@@ -31,6 +33,7 @@ INTENTS = [
     'reaction.content.later',
     'reaction.content.negative',
     'reaction.content.positive',
+    'reaction.dumb',
     'userprofile.response.active',
     'userprofile.response.age',
     'userprofile.response.fan',
@@ -40,6 +43,7 @@ INTENTS = [
 ]
 NUM_INTENTS = len(INTENTS)
 ACTIONS = [
+    'common.what',
     'common.bad',
     'common.bye',
     'common.good',
@@ -74,6 +78,7 @@ ACTIONS = [
 NUM_ACTIONS = len(ACTIONS)
 
 ACTION_SENTENCES = {
+    'common.what': 'Sorry, I didn\'t get that',
     'common.bad': 'That\'s bad...',
     'common.bye': 'Bye!',
     'common.good': 'That is good!',
@@ -127,16 +132,14 @@ CONTEXT_SHAPE = (CONTEXT_LENGTH,) + (STATE_SHAPE[0] + NUM_ACTIONS,)
 
 IMAGINATION_DEPTH = 3
 BATCH_SIZE = 32
-NUM_EPOCHS = 1
+NUM_EPOCHS = 50
 TEST_RATIO = .3
 
 START_DISCOUNT = .99
 END_DISCOUNT = .9
 END_DISCOUNT_EPISODES = 20
 
-START_EPSILON = .1
-END_EPSILON = .001
-END_EPSILON_EPISODES = 200
+START_EPSILON = .5
 
 # time to wait for another message after an "commons.bye" before marking a message as terminal (ending conversation)
 SECONDS_FOR_TERMINAL = 60

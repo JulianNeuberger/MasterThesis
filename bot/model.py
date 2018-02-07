@@ -1,7 +1,7 @@
 from typing import List
 
 import keras.backend as K
-from keras.layers import Concatenate, Dense, Input, Layer, Conv1D, Flatten, Reshape, Lambda
+from keras.layers import Concatenate, Dense, Input, Layer, Conv1D, Flatten, Reshape, Lambda, LSTM
 from keras.models import Model
 
 from bot.config import NUM_ACTIONS, IMAGINATION_DEPTH, NUM_INTENTS, SENTIMENT_LEN, \
@@ -97,12 +97,39 @@ def get_imagination_model() -> Model:
 
     x = Concatenate()([imagination, model_free_path])
 
-    combined_quality = Dense(units=NUM_ACTIONS, activation='linear', use_bias=True)(x)
+    combined_quality = Dense(units=NUM_ACTIONS, activation='relu', use_bias=True)(x)
 
     model = Model(inputs=[state, context], outputs=[combined_quality])
-    model.compile(optimizer='sgd', loss='binary_crossentropy')
-
+    model.compile(optimizer='sgd', loss='mse')
+    model.summary()
     return model
+
+
+def get_simple_model() -> Model:
+    context = Input(name='context_input', shape=CONTEXT_SHAPE)
+    state = Input(name='state_input', shape=STATE_SHAPE)
+
+    x_1 = Flatten()(context)
+
+    x = Concatenate()([x_1, state])
+    x = Dense(units=128)(x)
+    x = Dense(units=64)(x)
+
+    x = Dense(units=NUM_ACTIONS)(x)
+
+    model = Model(inputs=[context, state], outputs=[x])
+    model.compile(optimizer='sgd', loss='mse')
+    model.summary()
+    return model
+
+
+def get_rnn_model() -> Model:
+    context = Input(name='context_input', shape=CONTEXT_SHAPE)
+    state = Input(name='state_input', shape=STATE_SHAPE)
+
+    x = LSTM()()
+
+    return
 
 
 def push_context(x):

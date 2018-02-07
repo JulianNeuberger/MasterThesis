@@ -63,3 +63,6 @@ class State:
             self.sentiment,
             self.user_profile
         )
+
+    def __format__(self, format_spec):
+        return self.__str__()
