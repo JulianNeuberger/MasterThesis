@@ -79,11 +79,10 @@ class Context:
         """
         # number of missing actions/states
         missing_context = self.context_length - len(self.actions)
-        logger.debug("Missing {}-{}={} turns for context".format(
-            self.context_length,
-            len(self.actions),
-            missing_context
-        ))
+        # if missing_context != 0:
+        # logger.debug("Missing {} turns for context".format(
+        #     missing_context
+        # ))
         ret = []
         if self.states is not None and self.actions is not None:
             for state, action in zip(self.states, self.actions):
@@ -92,7 +91,7 @@ class Context:
         # a single context vector entry consists of a state and action both as vectors and concatenated
         padding = numpy.zeros((missing_context, STATE_SHAPE[0] + NUM_ACTIONS))
         ret = numpy.array(ret)
-        logger.debug("Shape of known contexts is {}, while shape of padding is {}".format(ret.shape, padding.shape))
+        # logger.debug("Shape of known contexts is {}, while shape of padding is {}".format(ret.shape, padding.shape))
         if len(ret) is not 0:
             ret = numpy.concatenate((ret, padding))
         else:

@@ -11,7 +11,6 @@ export default class MessageList extends React.Component {
             scrollLock: false
         };
         this.loadMessagesFromServer = this.loadMessagesFromServer.bind(this);
-        this.handleScroll = this.handleScroll.bind(this)
     }
 
     loadMessagesFromServer() {
@@ -40,9 +39,7 @@ export default class MessageList extends React.Component {
     }
 
     componentDidUpdate() {
-        if ($(window).scrollTop() + $(window).height() == $(document).height()) {
-            this.scrollToEnd();
-        }
+        // this.scrollToEnd();
     }
 
     handleScroll(event) {
@@ -76,7 +73,7 @@ export default class MessageList extends React.Component {
             )
         }.bind(this));
         return (
-            <div className={styles.container} onScroll={this.handleScroll}>
+            <div className={styles.container}>
                 <ul className={styles.list} ref="messageList">
                     {messages}
                 </ul>

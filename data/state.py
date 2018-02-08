@@ -30,6 +30,9 @@ class State:
             self.user_profile_vector = State._convert_user_profile(sentence.user_profile)
 
     def as_vector(self):
+        logger.debug(self.intent_vector)
+        logger.debug(numpy.array([self.sentiment]))
+        logger.debug(self.user_profile_vector)
         return numpy.concatenate((
             self.intent_vector,
             numpy.array([self.sentiment]),
@@ -39,17 +42,19 @@ class State:
     @staticmethod
     def _intent_vector_from_sentence(sentence: Sentence) -> ndarray:
         if sentence.intent is None:
+            logger.debug('Unknown intent')
             intent_name = 'common.unknown'
         else:
+            logger.debug('{}'.format(sentence.intent.template.name))
             intent_name = sentence.intent.template.name
         if intent_name not in INTENTS:
             return numpy.zeros(NUM_INTENTS)
-        # to_categorical returns a matrix, only take the first column
-        return to_categorical(y=INTENTS.index(intent_name), num_classes=NUM_INTENTS)[0]
+        intent_vector = numpy.zeros(NUM_INTENTS)
+        intent_vector[INTENTS.index(intent_name)] = 1.
+        return intent_vector
 
     @staticmethod
     def _convert_user_profile(user_profile: UserProfile):
-        logger.debug('Converting user profile "{}" to vector...'.format(user_profile))
         user_profile = [user_profile.name,
                         user_profile.age,
                         user_profile.has_favourite_player,

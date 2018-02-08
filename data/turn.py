@@ -58,7 +58,6 @@ class Turn:
             try:
                 turn = Turn(first, second)
                 turns.append(turn)
-                logger.info("Successfully parsed {}".format(turn))
             except NoIntentError or NoActionIntentError or NoStateIntentError as e:
                 logger.warning("Cannot use turn '{}'->'{}' because of '{}'".format(first, second, e))
         return turns

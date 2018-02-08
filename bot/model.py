@@ -99,7 +99,7 @@ def get_imagination_model() -> Model:
 
     combined_quality = Dense(units=NUM_ACTIONS, activation='relu', use_bias=True)(x)
 
-    model = Model(inputs=[state, context], outputs=[combined_quality])
+    model = Model(inputs=[state, context], outputs=[combined_quality], name='imagination_model')
     model.compile(optimizer='sgd', loss='mse')
     model.summary()
     return model
@@ -108,28 +108,29 @@ def get_imagination_model() -> Model:
 def get_simple_model() -> Model:
     context = Input(name='context_input', shape=CONTEXT_SHAPE)
     state = Input(name='state_input', shape=STATE_SHAPE)
+    action = Input(name='action_input', shape=(NUM_ACTIONS,))
 
-    x_1 = Flatten()(context)
+    # x_1 = Flatten()(context)
 
-    x = Concatenate()([x_1, state])
+    x = Concatenate()([state, action])
     x = Dense(units=128)(x)
     x = Dense(units=64)(x)
 
-    x = Dense(units=NUM_ACTIONS)(x)
+    x = Dense(units=1)(x)
 
-    model = Model(inputs=[context, state], outputs=[x])
+    model = Model(inputs=[context, state, action], outputs=[x], name='simple_model_v7')
     model.compile(optimizer='sgd', loss='mse')
     model.summary()
     return model
 
 
-def get_rnn_model() -> Model:
-    context = Input(name='context_input', shape=CONTEXT_SHAPE)
-    state = Input(name='state_input', shape=STATE_SHAPE)
-
-    x = LSTM()()
-
-    return
+# def get_rnn_model() -> Model:
+#     context = Input(name='context_input', shape=CONTEXT_SHAPE)
+#     state = Input(name='state_input', shape=STATE_SHAPE)
+#
+#     x = LSTM()()
+#
+#     return
 
 
 def push_context(x):

@@ -21,18 +21,20 @@ class Transition:
         self.context_t0 = context_t0
 
     @staticmethod
-    def transitions_to_data(transitions: List["Transition"], model):
+    def transitions_to_data(transitions: List["Transition"], model) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         states = []
         contexts = []
+        actions = []
         qualities = []
         for transition in transitions:
-            state, context, quality = transition.to_data_tuple(model)
+            state, context, action, quality = transition.to_data_tuple(model)
             states.append(state)
             contexts.append(context)
+            actions.append(action)
             qualities.append(quality)
-        return numpy.array(states), numpy.array(contexts), numpy.array(qualities)
+        return numpy.array(states), numpy.array(contexts), numpy.array(actions), numpy.array(qualities)
 
-    def to_data_tuple(self, model) -> Tuple[ndarray, ndarray, ndarray]:
+    def to_data_tuple(self, model) -> Tuple[ndarray, ndarray, ndarray, float]:
         """
         converts this transition to a tuple of numpy arrays containing the data, that makes up this transition
         :param model: a queryable model, that approximates the quality function
@@ -41,7 +43,8 @@ class Transition:
         return (
             self.state_t0.as_vector(),
             self.context_t0.as_matrix(),
-            self.action_t0.to_quality_vector(model, self.state_t0, self.context_t0, self.state_t1))
+            self.action_t0.as_vector(),
+            model.action_to_quality(self.action_t0, self.state_t0, self.context_t0, self.state_t1))
 
     @staticmethod
     def single_transition_from_turns(turns: List[Turn], context_length=CONTEXT_LENGTH):

@@ -1,6 +1,5 @@
 import logging
 
-import numpy
 from keras.utils import to_categorical
 
 from bot.config import ACTIONS, NUM_ACTIONS
@@ -22,7 +21,7 @@ class Action:
         :raises NoIntentError: if the given sentence has no intent
         :raises NoActionIntentError: if the given sentence has an intent, that cannot be interpreted as action
         """
-        self._action_vector = Action._action_from_sentence(sentence)
+        self._action_vector = Action.vector_from_sentence(sentence)
         self._action_index = ACTIONS.index(sentence.intent.template.name)
         self.reward = float(sentence.reward)
         self.terminal = bool(sentence.terminal)
@@ -30,26 +29,27 @@ class Action:
     def as_vector(self):
         return self._action_vector
 
-    def to_quality_vector(self, model, state_t0, context, state_t1):
-        q_t1 = model.predict([state_t0], [context])[0]
-        logger.debug('Original quality vector is {}'.format(q_t1))
-        if self.terminal:
-            q_t1[self._action_index] = self.reward
-        else:
-            context = context.push(state_t0, self)
-            q_t2 = model.predict([state_t1], [context])[0]
-            best_action_index = numpy.argmax(q_t2)
-            q_t1[self._action_index] = self.reward + model.current_discount() * q_t2[best_action_index]
-        logger.debug('Target quality vector is {}'.format(q_t1))
-        return q_t1
+    @property
+    def index(self):
+        return self._action_index
+
+    @property
+    def name(self):
+        return ACTIONS[self._action_index]
 
     @staticmethod
-    def _action_from_sentence(sentence: Sentence):
+    def vector_from_name(action_name: str):
+        if action_name not in ACTIONS:
+            raise ValueError('There is no Action with name "{}"'.format(action_name))
+        return to_categorical(y=ACTIONS.index(action_name), num_classes=NUM_ACTIONS)[0]
+
+    @staticmethod
+    def vector_from_sentence(sentence: Sentence):
         if sentence.intent is None:
             raise NoIntentError(sentence)
         if sentence.intent.template.name not in ACTIONS:
             raise NoActionIntentError(sentence.intent, sentence)
-        return to_categorical(y=ACTIONS.index(sentence.intent.template.name), num_classes=NUM_ACTIONS)[0]
+        return Action.vector_from_name(sentence.intent.template.name)
 
     def __str__(self) -> str:
         return '<Action {}>'.format(ACTIONS[self._action_index])
