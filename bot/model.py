@@ -1,7 +1,7 @@
 from typing import List
 
 import keras.backend as K
-from keras.layers import Concatenate, Dense, Input, Layer, Conv1D, Flatten, Reshape, Lambda, LSTM
+from keras.layers import Concatenate, Dense, Input, Layer, Conv1D, Flatten, Reshape, Lambda, Dropout
 from keras.models import Model
 
 from bot.config import NUM_ACTIONS, IMAGINATION_DEPTH, NUM_INTENTS, SENTIMENT_LEN, \
@@ -105,32 +105,70 @@ def get_imagination_model() -> Model:
     return model
 
 
-def get_simple_model() -> Model:
-    context = Input(name='context_input', shape=CONTEXT_SHAPE)
+def get_deep_mind_model(name=None) -> Model:
+    state_input = Input(name='state_input', shape=STATE_SHAPE)
+    context_input = Input(name='context_input', shape=CONTEXT_SHAPE)
+
+    cxt = Conv1D(filters=32, kernel_size=3)(context_input)
+    cxt = Conv1D(filters=32, kernel_size=3)(cxt)
+    cxt = Conv1D(filters=32, kernel_size=1)(cxt)
+    cxt = Flatten()(cxt)
+
+    x = Concatenate()([state_input, cxt])
+
+    x = Dense(units=128)(x)
+
+    output_layer = Dense(units=NUM_ACTIONS, activation='linear', name='quality_output')(x)
+
+    model = Model(name=name, inputs=[state_input, context_input], outputs=[output_layer])
+    model.compile('adam', 'mse')
+    model.summary()
+    return model
+
+
+def get_simple_model(name=None) -> Model:
     state = Input(name='state_input', shape=STATE_SHAPE)
     action = Input(name='action_input', shape=(NUM_ACTIONS,))
 
     # x_1 = Flatten()(context)
 
     x = Concatenate()([state, action])
-    x = Dense(units=128)(x)
-    x = Dense(units=64)(x)
+    # x = Dense(units=128)(x)
+    x = Dense(units=2048, use_bias=False, activation='sigmoid')(x)
 
     x = Dense(units=1)(x)
 
-    model = Model(inputs=[context, state, action], outputs=[x], name='simple_model_v7')
+    model = Model(inputs=[state, action], outputs=[x], name=name)
     model.compile(optimizer='sgd', loss='mse')
     model.summary()
     return model
 
 
-# def get_rnn_model() -> Model:
-#     context = Input(name='context_input', shape=CONTEXT_SHAPE)
-#     state = Input(name='state_input', shape=STATE_SHAPE)
-#
-#     x = LSTM()()
-#
-#     return
+def get_intent_only_model(name=None) -> Model:
+    intent = Input(name='intent_input', shape=(1,))
+    # x1 = Embedding(NUM_INTENTS, 4, input_length=1)(intent)
+    # x1 = keras.backend.squeeze(x1, 1)
+    # x1 = Reshape((4,))(x1)
+
+    action = Input(name='action_input', shape=(1,))
+    # x2 = Embedding(NUM_ACTIONS, 4, input_length=1)(action)
+    # x2 = keras.backend.squeeze(x2, 1)
+    # x2 = Reshape((4,))(x2)
+
+    x = Concatenate()([intent, action])
+
+    x = Dropout(.1)(x)
+    x = Dense(units=128, use_bias=False)(x)
+
+    x = Dropout(.1)(x)
+    x = Dense(units=64, use_bias=False)(x)
+
+    x = Dropout(.25)(x)
+    reward = Dense(units=1)(x)
+
+    model = Model(inputs=[intent, action], outputs=[reward], name=name)
+    model.compile(optimizer='adam', loss='mse')
+    return model
 
 
 def push_context(x):

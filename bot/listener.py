@@ -1,8 +1,9 @@
 import logging
 
+import numpy
 from django.contrib.auth.models import User
 
-from bot.bot import QueryableModel
+from bot.bot import DeepMindModel
 from bot.config import CONTEXT_LENGTH, ACTION_SENTENCES
 from chat.events import Singleton
 from chat.models import Message, Chat
@@ -18,8 +19,8 @@ logger = logging.getLogger('bot')
 
 class BotListener(metaclass=Singleton):
     def __init__(self, bot_user: User):
-        self._model = QueryableModel()
         self._user = bot_user
+        self._model = DeepMindModel(bot_user=self._user)
 
     def on_message(self, sentence):
         assert isinstance(sentence, Sentence)
@@ -48,8 +49,8 @@ class BotListener(metaclass=Singleton):
         turns = Turn.sentences_to_turns(sentences, self._user)
         context = Context.get_single_context(turns, CONTEXT_LENGTH)
         state = State(sentence)
-        action_name = self._model.query(state, context)
-
+        action_name = self._model.query({'state_input': numpy.array([state.as_vector()]),
+                                         'context_input': numpy.array([context.as_matrix()])})
         human_user = User.objects.get(username=sentence.said_by)
         chat = Chat.objects.get(initiator=human_user, receiver=self._user)
 
@@ -73,18 +74,4 @@ class BotListener(metaclass=Singleton):
             action_name
         ))
 
-    def on_reward(self, sentence):
-        pass
-
-    def on_batch(self, sentences):
-        logger.info("Received signal to online train on a batch of sentences.")
-        logger.info("Sentences are {}".format(sentences))
-
-        turns = Turn.sentences_to_turns(sentences, self._user)
-        transitions = Transition.all_transitions_from_turns(turns, CONTEXT_LENGTH)
-        self._model.train(transitions)
-
-        logger.info("Training successful, setting {} used sentences to 'used in training'...".format(
-            len(sentences)
-        ))
-        sentences.update(used_in_training=True)
+        self._model.train()

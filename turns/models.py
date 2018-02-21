@@ -1,3 +1,5 @@
+import random
+
 from django.db import models
 
 from chat.models import Message
@@ -6,6 +8,17 @@ from chat.models import Message
 class Dialogue(models.Model):
     held_on = models.DateTimeField(auto_now_add=True)
     with_user = models.CharField(max_length=64, null=False, unique=True)
+
+    @staticmethod
+    def sample_random_uniform():
+        """
+        Samples a random Dialogue, useful for training a DQN
+        :return: a random Dialogue object
+        """
+        dialogues = Dialogue.objects.distinct('id')
+        num_dialogues = len(dialogues)
+        index = int(num_dialogues * random.random())
+        return dialogues[index]
 
     def __str__(self):
         return 'Dialog in {}'.format(self.with_user)
@@ -106,3 +119,15 @@ class Sentence(models.Model):
 
     def __str__(self):
         return self.value
+
+    @staticmethod
+    def sample_bot_sentence_uniform_random(bot_user_name: str):
+        """
+        samples a random sentence
+
+        :parameter bot_user_name: a string, representing the bot user name, only "actions" are valid
+
+        :return: a random sentence object
+        """
+        num_sentences = Sentence.objects.filter(said_by=bot_user_name).count()
+        return Sentence.objects.all().filter(said_by=bot_user_name)[random.randint(0, num_sentences - 1)]

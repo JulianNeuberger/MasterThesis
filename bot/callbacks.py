@@ -3,7 +3,7 @@ import logging
 from keras.callbacks import Callback
 from keras.engine import Model
 
-from bot.config import START_DISCOUNT, END_DISCOUNT, END_DISCOUNT_EPISODES, START_EPSILON, RESET_EPISODES, EPSILON_DECAY
+from bot.config import START_DISCOUNT, END_DISCOUNT, END_DISCOUNT_BATCHES, START_EPSILON, RESET_EPISODES, EPSILON_DECAY
 
 logger = logging.getLogger("bot")
 
@@ -33,25 +33,25 @@ class EpsilonCallback(OvertimeParameterCallback):
         super().__init__(START_EPSILON)
 
     def _update_value(self):
-        prev_value = self._value
         self._value = self._value / EPSILON_DECAY
-        logger.debug('Updating epsilon for batch #{}, it is now {} (was {})'
-                     .format(self._current_step, self._value, prev_value))
+
+    def on_epoch_end(self, epoch, logs=None):
+        logger.debug('Epsilon is now {:.6}'.format(self._value))
 
 
 class DiscountCallback(OvertimeParameterCallback):
     def __init__(self):
         super().__init__(START_DISCOUNT)
         self._end = END_DISCOUNT
-        self._end_steps = END_DISCOUNT_EPISODES
+        self._end_steps = END_DISCOUNT_BATCHES
 
     def _update_value(self):
-        prev_value = self._value
         if self._value > self._end:
             self._value = self._start - ((self._start - self._end) / self._end_steps) * self._current_step
             self._value = max(self._value, self._end)
-            logger.debug('Updating discount for batch #{}, it is now {} (was {})'
-                         .format(self._current_step, self._value, prev_value))
+
+    def on_epoch_end(self, epoch, logs=None):
+        logger.debug('Discount is now {:.6}'.format(self._value))
 
 
 class TargetResetCallback(Callback):
@@ -66,4 +66,4 @@ class TargetResetCallback(Callback):
         self._epochs_seen += 1
         if self._epochs_seen % self._reset_episodes == 0:
             logger.info('Resetting the target function...')
-            self._target.set_weights(self._model.weights)
+            self._target.set_weights(self._model.get_weights())

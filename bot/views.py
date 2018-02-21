@@ -1,8 +1,15 @@
 from django.http import HttpResponse
 
-from bot.bot import QueryableModel
+from bot.bot import DeepMindModel
+
+model = DeepMindModel.instance
 
 
 def training_view(request):
-    QueryableModel().train()
+    model.train()
     return HttpResponse('model trained')
+
+
+def save_model(request):
+    model.save_weights()
+    return HttpResponse('saved weights')

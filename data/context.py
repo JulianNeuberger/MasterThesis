@@ -121,25 +121,6 @@ class Context:
 
         return context
 
-    # @staticmethod
-    # def get_contexts_from_turns(turns: List[Turn], context_length: int = CONTEXT_LENGTH) -> numpy.ndarray:
-    #     """
-    #     This methods parameters are ordering sensitive! Read below for more information
-    #     Creates Context objects from a list of Turns. The list of Turns needs to be in correct order, i.e.
-    #     the newest (latest) Turn needs to be the last in the list.
-    #     :param turns: the turns to process into contexts, ordering matters, see above!
-    #     :param context_length: number of steps into the past, see parameter in Context.__init__
-    #     :return: a list of Context objects
-    #     """
-    #     contexts = []
-    #     num_turns = len(turns)
-    #     turns = turns[::-1]
-    #     for i, turn in enumerate(turns):
-    #         remaining_turns = min(num_turns - i, context_length)
-    #         turns_slice = turns[i:i + remaining_turns]
-    #         contexts.append(Context.get_single_context(turns_slice, context_length))
-    #     return numpy.array(contexts)
-
     @staticmethod
     def get_single_context(turns, context_length: int = CONTEXT_LENGTH):
         """

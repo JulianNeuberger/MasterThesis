@@ -1,5 +1,4 @@
 import os
-
 INTENTS = [
     'common.unknown',
 
@@ -32,6 +31,7 @@ INTENTS = [
     'reaction.content.known',
     'reaction.content.later',
     'reaction.content.negative',
+    'reaction.content.not_interested',
     'reaction.content.positive',
     'reaction.dumb',
     'userprofile.response.active',
@@ -41,6 +41,7 @@ INTENTS = [
     'userprofile.response.inactive',
     'userprofile.response.name'
 ]
+
 NUM_INTENTS = len(INTENTS)
 ACTIONS = [
     'common.what',
@@ -131,15 +132,15 @@ CONTEXT_LENGTH = 5
 CONTEXT_SHAPE = (CONTEXT_LENGTH,) + (STATE_SHAPE[0] + NUM_ACTIONS,)
 
 IMAGINATION_DEPTH = 3
-BATCH_SIZE = 1
+BATCH_SIZE = 10
 NUM_EPOCHS = 10
 TEST_RATIO = .1
 
 START_DISCOUNT = .99
-END_DISCOUNT = .7
-END_DISCOUNT_EPISODES = 20
+END_DISCOUNT = .75
+END_DISCOUNT_BATCHES = 5000
 
-START_EPSILON = .75
+START_EPSILON = .5
 EPSILON_DECAY = 1.0001
 
 # time to wait for another message after an "commons.bye" before marking a message as terminal (ending conversation)
@@ -151,7 +152,4 @@ SENTENCE_BUFFER_SIZE = int(9 / 0.9)
 RESET_EPISODES = 10
 
 WEIGHTS_DIR = os.path.join(".", "bot", "weights")
-IMAGINATION_MODEL_LATEST_WEIGHTS_FILE = os.path.join(WEIGHTS_DIR, 'imagination_latest.pkl')
-BACKUP_WEIGHTS_FILE = os.path.join(WEIGHTS_DIR, 'imagination_latest.pkl.bkp')
-
 LOG_DIR = os.path.join(".", "bot", "logs")

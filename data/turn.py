@@ -31,7 +31,8 @@ class Turn:
             self.bot = Action(second)
             self._first = first
             self._second = second
-        except NoIntentError or IntentError as e:
+        except Exception as e:
+            logger.exception(e)
             raise TurnNotUsable(e)
         assert first.said_in == second.said_in
         self.dialogue = first.said_in
@@ -53,12 +54,12 @@ class Turn:
             try:
                 second = Turn._find_second(sentences_iter, first)
             except StopIteration:
-                # no more sentences
+                logger.debug('Unterminated sentence "{}"'.format(first))
                 break
             try:
                 turn = Turn(first, second)
                 turns.append(turn)
-            except NoIntentError or NoActionIntentError or NoStateIntentError as e:
+            except TurnNotUsable as e:
                 logger.warning("Cannot use turn '{}'->'{}' because of '{}'".format(first, second, e))
         return turns
 

@@ -1,6 +1,6 @@
 import logging
 
-from keras.utils import to_categorical
+import numpy
 
 from bot.config import ACTIONS, NUM_ACTIONS
 from data.exceptions import NoIntentError, NoActionIntentError
@@ -10,10 +10,6 @@ logger = logging.getLogger('data')
 
 
 class Action:
-    _action_vector = None
-    reward = 0
-    terminal = False
-
     def __init__(self, sentence: Sentence = None):
         """
         :param sentence: sentence to get the action from
@@ -30,7 +26,7 @@ class Action:
         return self._action_vector
 
     @property
-    def index(self):
+    def intent_index(self):
         return self._action_index
 
     @property
@@ -41,7 +37,9 @@ class Action:
     def vector_from_name(action_name: str):
         if action_name not in ACTIONS:
             raise ValueError('There is no Action with name "{}"'.format(action_name))
-        return to_categorical(y=ACTIONS.index(action_name), num_classes=NUM_ACTIONS)[0]
+        vector = numpy.zeros(NUM_ACTIONS)
+        vector[ACTIONS.index(action_name)] = 1.
+        return vector
 
     @staticmethod
     def vector_from_sentence(sentence: Sentence):

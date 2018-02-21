@@ -76,10 +76,10 @@ class TurnsTerminator(Thread):
         self.daemon = True
 
     def run(self):
+        sleep(5)
         logger.info("Started TurnsTerminator.")
         while True:
             logger.info("TurnsTerminator checking for unterminated sentences.")
-            sleep(SECONDS_FOR_TERMINAL)
             last_sentence_in_dialogues = Sentence.objects.raw(
                 'SELECT * FROM turns_sentence GROUP BY said_in_id ORDER BY said_on DESC;')
             for sentence in last_sentence_in_dialogues:
@@ -93,15 +93,17 @@ class TurnsTerminator(Thread):
                     sentence.terminal = True
                     sentence.save()
 
-                    sentences = Sentence.objects.filter(used_in_training=False, said_in=sentence.said_in)
-                    num_sentences = len(sentences)
-                    if num_sentences >= SENTENCE_BUFFER_SIZE:
-                        logger.info(
-                            'There are {} sentences not used for training, notifying bot to train on them.'.format(
-                                num_sentences
-                            ))
-                        bot_user = User.objects.get(username='Chatbot')
-                        BotListener(bot_user).on_batch(sentences)
-                    else:
-                        logger.debug(
-                            'Not enough unused sentences for one episode, cannot train!')
+                    # sentences = Sentence.objects.filter(used_in_training=False, said_in=sentence.said_in)
+                    # num_sentences = len(sentences)
+                    # if num_sentences >= SENTENCE_BUFFER_SIZE:
+                    #     logger.info(
+                    #         'There are {} sentences not used for training, notifying bot to train on them.'.format(
+                    #             num_sentences
+                    #         ))
+                    #     bot_user = User.objects.get(username='Chatbot')
+                    #     BotListener(bot_user).on_batch(sentences)
+                    # else:
+                    #     logger.debug(
+                    #         'Not enough unused sentences for one episode, cannot train!')
+            # Nyquist frequency, so we don't miss terminals
+            sleep(SECONDS_FOR_TERMINAL/2)

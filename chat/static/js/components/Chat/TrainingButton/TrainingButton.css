@@ -1,0 +1,22 @@
+.container {
+    height: 30px;
+    width: 75px;
+
+    background-color: #0095d4;
+    color: white;
+    text-align: center;
+
+    padding: 10px;
+
+    position: fixed;
+    top: 0;
+    left: calc(50% - 75px);
+}
+
+.normal {
+
+}
+
+.training {
+
+}

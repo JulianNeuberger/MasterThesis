@@ -14,11 +14,19 @@ class Transition:
     TURNS_FOR_CONVERSION = 2
     SENTENCES_FOR_CONVERSION = TURNS_FOR_CONVERSION * 2
 
-    def __init__(self, state_t0: State, action_t0: Action, context_t0: Context, state_t1: State):
+    def __init__(self,
+                 state_t0: State,
+                 action_t0: Action,
+                 context_t0: Context,
+                 state_t1: State,
+                 action_t1: Action,
+                 context_t1: Context):
         self.state_t0 = state_t0
         self.state_t1 = state_t1
         self.action_t0 = action_t0
         self.context_t0 = context_t0
+        self.context_t1 = context_t1
+        self.terminal = action_t1.terminal
 
     @staticmethod
     def transitions_to_data(transitions: List["Transition"], model) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
@@ -57,6 +65,14 @@ class Transition:
 
     @staticmethod
     def all_transitions_from_turns(turns: List[Turn], context_length=CONTEXT_LENGTH):
+        """
+        Creates transitions from a list of turns. Reverses that list of turns, so put in a list of turns
+        with ascending "dates" of these turns.
+
+        :param turns: List of Turns
+        :param context_length: length of context for each turn
+        :return: a list of Transitions
+        """
         transitions = []
         num_turns = len(turns)
         turns = turns[::-1]

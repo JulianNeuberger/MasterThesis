@@ -2,6 +2,7 @@ import React from 'react'
 import MessageList from './MessageList/MessageList'
 import MessageInput from './MessageInput/MessageInput'
 import styles from './Chat.css'
+import TrainingButton from "./TrainingButton/TrainingButton";
 
 export default class Chat extends React.Component {
     constructor(props) {
@@ -23,6 +24,7 @@ export default class Chat extends React.Component {
                                   csrfToken={this.props.csrfToken}
                                   userId={this.props.userId}
                                   chatId={this.props.chatId}/>
+                    <TrainingButton url={this.props.trainUrl}/>
                 </div>
             )
         }
