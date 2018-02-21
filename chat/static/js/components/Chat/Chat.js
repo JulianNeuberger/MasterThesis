@@ -24,7 +24,9 @@ export default class Chat extends React.Component {
                                   csrfToken={this.props.csrfToken}
                                   userId={this.props.userId}
                                   chatId={this.props.chatId}/>
-                    <TrainingButton url={this.props.trainUrl}/>
+                    <TrainingButton trainingUrl={this.props.trainUrl}
+                                    statusUrl={this.props.statusUrl}
+                                    pollInterval={5000}/>
                 </div>
             )
         }

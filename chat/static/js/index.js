@@ -5,6 +5,7 @@ import Chat from './components/Chat/Chat'
 
 ReactDOM.render(<Chat url='/chat/api/messages/'
                       trainUrl='/bot/train'
+                      statusUrl='/bot/status'
                       chatId={window.django.chat.url}
                       userId={window.django.user.url}
                       csrfToken={window.django.csrfToken}

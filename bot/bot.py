@@ -1,6 +1,7 @@
 import logging
 import os
 from shutil import copyfile
+from threading import Lock
 from typing import Dict, Optional, Tuple
 
 import numpy
@@ -37,6 +38,8 @@ class QueryableModelInterface(metaclass=Singleton):
 
         :param load: bool, should weights be loaded form the default file? Defaults to True
         """
+        self._training_lock = Lock()
+
         self._callbacks = []
         self._model = None
         self._epochs_trained = 0
@@ -91,33 +94,37 @@ class QueryableModelInterface(metaclass=Singleton):
             return self._prediction_to_action(self._model.predict(raw_input))
 
     def train(self):
-        with self._graph.as_default():
-            batch = self._sample_batches()
-            if batch is not None:
-                inputs, outputs = batch
-                # epochs is not number of iterations, but the target epoch "id", see keras.fit documentation
-                target_epoch = self._epochs_trained + 1
-                self._model.fit(inputs, outputs,
-                                batch_size=BATCH_SIZE,
-                                epochs=target_epoch, initial_epoch=self._epochs_trained,
-                                validation_split=TEST_RATIO,
-                                callbacks=self._callbacks)
-                self._epochs_trained += 1
+        with self._training_lock:
+            with self._graph.as_default():
+                batch = self._sample_batch()
+                if batch is not None:
+                    inputs, outputs = batch
+                    # epochs is not number of iterations, but the target epoch "id", see keras.fit documentation
+                    target_epoch = self._epochs_trained + 1
+                    self._model.fit(inputs, outputs,
+                                    batch_size=BATCH_SIZE,
+                                    epochs=target_epoch, initial_epoch=self._epochs_trained,
+                                    validation_split=TEST_RATIO,
+                                    callbacks=self._callbacks)
+                    self._epochs_trained += 1
 
     def save_weights(self):
         with self._graph.as_default():
             self._backup_weights()
             self._save_weights()
 
-    def _sample_batches(self) -> Optional[Tuple[Dict, Dict]]:
+    def is_training(self):
+        return self._training_lock.locked()
+
+    def _sample_batch(self) -> Optional[Tuple[Dict, Dict]]:
         """
-        Method for sampling batches (0-*) to use in training.
+        Method for sampling one batch to use in training.
         Can return None, if training not possible.
         Method is responsible for ordering/shuffling samples.
 
         Implement this method!
 
-        :return: None, if no training possible, a tuple of dicts of inputs and outputs otherwise
+        :return: None, if no training possible, a tuple of dicts of input and output batch otherwise
         """
         raise NotImplementedError()
 
@@ -196,7 +203,7 @@ class DeepMindModel(QueryableModelInterface):
     def epsilon(self):
         return self._epsilon_callback.value
 
-    def _sample_batches(self) -> Optional[Tuple[Dict, Dict]]:
+    def _sample_batch(self) -> Optional[Tuple[Dict, Dict]]:
         if Sentence.objects.count() == 0:
             return None
         sentences = \
