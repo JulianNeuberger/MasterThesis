@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.utils import timezone
 
-from bot.config import SECONDS_FOR_TERMINAL, SECONDS_PER_DAY, SENTENCE_BUFFER_SIZE
+from bot.config import SECONDS_FOR_TERMINAL, SECONDS_PER_DAY
 from bot.listener import BotListener
 from chat.events import ChatMessageEvent
 from turns.models import Sentence, Dialogue
@@ -19,8 +19,8 @@ class ChatMessageListener:
     def __init__(self):
         self._terminator = TurnsTerminator()
         self._terminator.start()
-        bot_user = User.objects.get(username='Chatbot')
-        self._bot_listener = BotListener(bot_user=bot_user)
+        self._bot_user = User.objects.get(username='Chatbot')
+        self._bot_listener = BotListener(bot_user=self._bot_user)
 
     def on_message(self, event: ChatMessageEvent):
         logger.debug('Processing ChatMessageEvent in ChatMessageListener.')
@@ -30,7 +30,7 @@ class ChatMessageListener:
             ChatMessageListener._update_sentence_for_message(sentence, event)
             logger.debug('Message is already in database, updating reward')
         except ObjectDoesNotExist:
-            sentence = ChatMessageListener._get_sentence_for_message(event)
+            sentence = self._get_sentence_for_message(event)
             new_message = True
             logger.debug('Message is not in database, creating new one')
         except MultipleObjectsReturned:
@@ -41,17 +41,11 @@ class ChatMessageListener:
             logger.info('Got new message, notifying chat bot endpoint.')
             self._bot_listener.on_message(sentence)
 
-    @staticmethod
-    def _update_sentence_for_message(sentence: Sentence, event: ChatMessageEvent):
-        sentence.reward = event.reward
-        sentence.save()
-        return sentence
-
-    @staticmethod
-    def _get_sentence_for_message(event: ChatMessageEvent):
+    def _get_sentence_for_message(self, event: ChatMessageEvent):
         sent_to = event.channel.initiator \
-            if event.channel.initiator.username != event.user.username \
+            if event.channel.initiator.username != self._bot_user.username \
             else event.channel.receiver
+        assert sent_to != self._bot_user.username
         dialogue, _ = Dialogue.objects.get_or_create(with_user=sent_to.username)
         sentence = Sentence(value=event.value,
                             said_by=event.user.username,
@@ -60,6 +54,12 @@ class ChatMessageListener:
         sentence = update_all_for_single_sentence(sentence, save=True)
         update_user_profile_for_single_dialogue(sentence.said_in, False, True)
         sentence.refresh_from_db()
+        return sentence
+
+    @staticmethod
+    def _update_sentence_for_message(sentence: Sentence, event: ChatMessageEvent):
+        sentence.reward = event.reward
+        sentence.save()
         return sentence
 
 
@@ -92,18 +92,5 @@ class TurnsTerminator(Thread):
                         "Got no new sentence after {} seconds, this has to be a terminal sentence".format(pause))
                     sentence.terminal = True
                     sentence.save()
-
-                    # sentences = Sentence.objects.filter(used_in_training=False, said_in=sentence.said_in)
-                    # num_sentences = len(sentences)
-                    # if num_sentences >= SENTENCE_BUFFER_SIZE:
-                    #     logger.info(
-                    #         'There are {} sentences not used for training, notifying bot to train on them.'.format(
-                    #             num_sentences
-                    #         ))
-                    #     bot_user = User.objects.get(username='Chatbot')
-                    #     BotListener(bot_user).on_batch(sentences)
-                    # else:
-                    #     logger.debug(
-                    #         'Not enough unused sentences for one episode, cannot train!')
             # Nyquist frequency, so we don't miss terminals
-            sleep(SECONDS_FOR_TERMINAL/2)
+            sleep(SECONDS_FOR_TERMINAL / 2)

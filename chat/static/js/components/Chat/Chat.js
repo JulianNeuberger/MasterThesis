@@ -1,8 +1,11 @@
 import React from 'react'
+import ReactTooltip from 'react-tooltip'
+import {ToastContainer} from "react-toastify"
+
 import MessageList from './MessageList/MessageList'
 import MessageInput from './MessageInput/MessageInput'
+import Controls from "./Controls/Controls";
 import styles from './Chat.css'
-import TrainingButton from "./TrainingButton/TrainingButton";
 
 export default class Chat extends React.Component {
     constructor(props) {
@@ -24,9 +27,14 @@ export default class Chat extends React.Component {
                                   csrfToken={this.props.csrfToken}
                                   userId={this.props.userId}
                                   chatId={this.props.chatId}/>
-                    <TrainingButton trainingUrl={this.props.trainUrl}
-                                    statusUrl={this.props.statusUrl}
-                                    pollInterval={5000}/>
+                    <Controls trainActionUrl={this.props.trainActionUrl}
+                              trainStatusUrl={this.props.trainStatusUrl}
+                              saveActionurl={this.props.saveActionUrl}
+                              saveStatusUrl={this.props.saveStatusUrl}
+                              csrfToken={this.props.csrfToken}
+                              pollInterval={3000}/>
+                    <ToastContainer/>
+                    <ReactTooltip effect='solid' type='light'/>
                 </div>
             )
         }

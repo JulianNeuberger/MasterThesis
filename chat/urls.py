@@ -4,14 +4,13 @@ from rest_framework import routers
 from chat import views
 
 router = routers.DefaultRouter()
-router.register(r'messages', views.MessageViewSet)
+router.register(r'messages', views.MessageViewSet, 'Message')
 router.register(r'chats', views.ChatViewSet)
 router.register(r'user-detail', views.UserViewSet)
-
 
 urlpatterns = [
     url(r'^$', views.index),
     url(r'^single/(?P<chat_id>[0-9]+)/$', views.single_chat, name='single'),
     url(r'^start/bot', views.start_bot_chat, name='start_bot_chat'),
-    url(r'^api/', include(router.urls))
+    url(r'^api/', include(router.urls)),
 ]

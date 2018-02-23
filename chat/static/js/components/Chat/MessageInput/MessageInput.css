@@ -1,11 +1,16 @@
 .container {
     box-sizing: border-box;
-    width: 100%;
     display: block;
+
     height: 50px;
-    padding: 0;
-    margin: 0;
-    position: relative;
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 25px;
+}
+
+.container > form {
+    height: 100%;
 }
 
 .input {
@@ -20,32 +25,40 @@
     left: 0;
     border: none;
     transition: outline .25s, box-shadow .25s, width .25s;
-    z-index: 1;
+    border-radius: 25px;
 }
 
 .container:hover input, .input:focus {
     box-shadow: 0 0 25px -5px rgba(0, 0, 0, 0.25);
-    width: calc(100% - 50px);
     transition: outline .25s, box-shadow .25s, width .25s;
 }
 
+.container:hover .send, .input:focus + .send {
+    right: 0;
+
+    transition: right .25s ease-in-out;
+}
+
 .send {
+    content: '';
+    display: inline-block;
+
     box-sizing: border-box;
     height: 50px;
     width: 50px;
+
     border: none;
-    background-size: cover;
-    background: #d0d0d0 url('./send-button.png') no-repeat center;
-    content: '';
-    display: inline-block;
+    border-radius: 50%;
+
+    cursor: pointer;
+
+    background: #2bafff url('/static/img/send.svg') no-repeat center;
+    background-size: 50%;
+
+
     position: absolute;
     top: 0;
-    right: 0;
-    transition: background .25s;
-    cursor: pointer;
-}
+    right: -75px;
 
-.send:hover {
-    background-color: #2bafff;
-    transition: background .25s;
+    transition: right .25s ease-in-out;
 }

@@ -1,5 +1,6 @@
 import logging
 import os
+import pickle
 from shutil import copyfile
 from threading import Lock
 from typing import Dict, Optional, Tuple
@@ -9,8 +10,8 @@ import tensorflow as tf
 from keras.callbacks import TensorBoard
 
 from bot.callbacks import DiscountCallback, EpsilonCallback, TargetResetCallback
-from bot.config import BATCH_SIZE, ACTIONS, TEST_RATIO, LOG_DIR, WEIGHTS_DIR, CONTEXT_LENGTH, NUM_ACTIONS, STATE_SHAPE, \
-    CONTEXT_SHAPE
+from bot.config import BATCH_SIZE, ACTIONS, TEST_RATIO, LOG_DIR, WEIGHTS_DIR, CONTEXT_LENGTH, NUM_ACTIONS, \
+    STATE_SHAPE, CONTEXT_SHAPE
 from bot.model import get_deep_mind_model
 from data.action import Action
 from data.context import Context
@@ -42,7 +43,7 @@ class QueryableModelInterface(metaclass=Singleton):
 
         self._callbacks = []
         self._model = None
-        self._epochs_trained = 0
+        self._steps_seen = 0
         self._graph = tf.get_default_graph()
 
         self._model_base_name = model_name
@@ -50,6 +51,9 @@ class QueryableModelInterface(metaclass=Singleton):
         self._init_model(load)
         assert self._model is not None, 'Method _init_model has to set _model member!'
         self._init_callbacks()
+
+        self._load_stats()
+
         if QueryableModelInterface.instance is None:
             QueryableModelInterface.instance = self
 
@@ -100,13 +104,14 @@ class QueryableModelInterface(metaclass=Singleton):
                 if batch is not None:
                     inputs, outputs = batch
                     # epochs is not number of iterations, but the target epoch "id", see keras.fit documentation
-                    target_epoch = self._epochs_trained + 1
+                    target_step = self._steps_seen + 1
                     self._model.fit(inputs, outputs,
                                     batch_size=BATCH_SIZE,
-                                    epochs=target_epoch, initial_epoch=self._epochs_trained,
+                                    epochs=target_step, initial_epoch=self._steps_seen,
                                     validation_split=TEST_RATIO,
                                     callbacks=self._callbacks)
-                    self._epochs_trained += 1
+                    self._steps_seen += 1
+                    self._save_stats()
 
     def save_weights(self):
         with self._graph.as_default():
@@ -115,6 +120,9 @@ class QueryableModelInterface(metaclass=Singleton):
 
     def is_training(self):
         return self._training_lock.locked()
+
+    def is_saving(self):
+        return False
 
     def _sample_batch(self) -> Optional[Tuple[Dict, Dict]]:
         """
@@ -142,24 +150,55 @@ class QueryableModelInterface(metaclass=Singleton):
         logger.info('Backing up weight file...')
         if not os.path.exists(WEIGHTS_DIR):
             os.makedirs(WEIGHTS_DIR)
-        weight_file, backup_file, weight_dir = self._get_model_weights_file_names()
-        if not os.path.exists(weight_dir):
-            os.makedirs(weight_dir)
-        if os.path.isfile(weight_file):
-            copyfile(weight_file, backup_file)
+        if not os.path.exists(self.model_weight_directory):
+            os.makedirs(self.model_weight_directory)
+        if os.path.isfile(self.model_weight_file):
+            copyfile(self.model_weight_file, self.model_weight_backup)
             logger.info('Successfully backed up weights.')
 
     def _save_weights(self):
-        weight_file_name, _, _ = self._get_model_weights_file_names()
         logger.info('Saving current weights...')
-        self._model.save_weights(weight_file_name)
+        self._model.save_weights(self.model_weight_file)
         logger.info('Successfully saved weights.')
 
-    def _get_model_weights_file_names(self):
-        model_weight_dir = os.path.join(WEIGHTS_DIR, self._model.name)
-        model_weight_file = os.path.join(model_weight_dir, 'weights.pickle')
-        backup_file = os.path.join(model_weight_dir, 'weights.pickle.bkp')
-        return model_weight_file, backup_file, model_weight_dir
+    def _load_stats(self):
+        if os.path.isfile(self.model_stats_file):
+            with open(self.model_stats_file, 'rb') as file:
+                stats = pickle.load(file)
+            try:
+                self._steps_seen = stats['epochs_trained']
+            except KeyError:
+                logger.warning('There is a legacy stats file at "{}", overwrite it!'.format(
+                    self.model_stats_file
+                ))
+                self._steps_seen = stats['steps_seen']
+        else:
+            self._steps_seen = 0
+
+    def _save_stats(self):
+        logger.info('Writing model stats...')
+        stats = {
+            'steps_seen': self._steps_seen
+        }
+        with open(self.model_stats_file, 'wb') as stats_file:
+            pickle.dump(stats, stats_file)
+        logger.info('Successfully wrote stats.')
+
+    @property
+    def model_weight_directory(self):
+        return os.path.join(WEIGHTS_DIR, self._model.name)
+
+    @property
+    def model_weight_file(self):
+        return os.path.join(self.model_weight_directory, 'weights.pickle')
+
+    @property
+    def model_weight_backup(self):
+        return os.path.join(self.model_weight_directory, 'weights.pickle.bkp')
+
+    @property
+    def model_stats_file(self):
+        return os.path.join(self.model_weight_directory, 'stats.pickle')
 
 
 class DeepMindModel(QueryableModelInterface):
@@ -175,15 +214,13 @@ class DeepMindModel(QueryableModelInterface):
         self._model = get_deep_mind_model(name=model_name)
         self._target = get_deep_mind_model()
         if load:
-            model_weights_file, _, _ = self._get_model_weights_file_names()
-            if os.path.isfile(model_weights_file):
-                logger.info('Loading model weights from "{}".'.format(model_weights_file))
-                self._model.load_weights(model_weights_file)
-                self._target.load_weights(model_weights_file)
+            if os.path.isfile(self.model_weight_file):
+                logger.info('Loading model weights from "{}".'.format(self.model_weight_file))
+                self._model.load_weights(self.model_weight_file)
+                self._target.load_weights(self.model_weight_file)
             else:
-                logger.info(
-                    'No weights file for model "{}" found, this can be due to the first time running this model...'.
-                        format(self._model.name))
+                logger.info('No weights file for model "{}" found, '
+                            'this can be due to the first time running this model...'.format(self._model.name))
 
     def _init_callbacks(self):
         self._discount_callback = DiscountCallback()

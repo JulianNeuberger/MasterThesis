@@ -11,7 +11,6 @@ from data.context import Context
 from data.state import State
 from data.turn import Turn
 from turns.models import Sentence, IntentTemplate, Intent
-from turns.transition import Transition
 from turns.util import update_user_profile_for_single_dialogue
 
 logger = logging.getLogger('bot')
@@ -28,7 +27,7 @@ class BotListener(metaclass=Singleton):
         logger.debug("Received notification on new message to bot, processing...")
 
         sentences_needed = CONTEXT_LENGTH * 2  # each context needs 2 sentences to be built
-        sentence_query = Sentence.objects.order_by('-said_on').filter(said_in=sentence.said_in)
+        sentence_query = Sentence.objects.filter(said_in=sentence.said_in).order_by('-said_on')
         sentences_available = sentence_query.count()
         num_sentences = min(sentences_needed, sentences_available)
         sentences = sentence_query[:num_sentences]

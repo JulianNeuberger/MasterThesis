@@ -18,4 +18,5 @@ def save_model(request):
 def bot_status(request):
     return JsonResponse({
         'training': model.is_training(),
+        'saving': model.is_saving()
     })

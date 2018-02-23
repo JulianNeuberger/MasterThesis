@@ -4,11 +4,12 @@ from datetime import datetime
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
-from rest_framework import viewsets
+from rest_framework import viewsets, generics
 
 from chat.events import ListenerManager, ChatMessageEvent
 from chat.models import Message, Chat
@@ -25,8 +26,8 @@ def single_chat(request, chat_id):
     chat = Chat.objects.get(id=chat_id)
     chat_serializer = ChatSerializer(chat, context=serializing_context)
     context = {
-        'user_url': user_serializer.data['url'],
-        'chat_url': chat_serializer.data['url']
+        'user_id': user_serializer.data['id'],
+        'chat_id': chat_serializer.data['id']
     }
     return TemplateResponse(request=request, template='chat/single.html', context=context)
 
@@ -48,7 +49,7 @@ def index(request):
 @login_required
 def start_bot_chat(request):
     assert request.user is not None, 'login is required to start chat with bot'
-    # FIXME: Dirty hack, maybe the chat should assume receiver is the bot?
+    # FIXME: Dirty hack, store default chatbot user in db
     bot_user = User.objects.get(username='Chatbot')
     assert bot_user is not None, 'We need some kind of bot user for this to work'
     chat = Chat.objects.create(initiator=request.user, receiver=bot_user,
@@ -56,8 +57,21 @@ def start_bot_chat(request):
     return redirect('single', chat_id=chat.id)
 
 
-class MessageViewSet(viewsets.ModelViewSet):
-    queryset = Message.objects.all()
+class ChatMessageList(generics.ListAPIView):
+    serializer_class = MessageSerializer
+
+    def get_queryset(self):
+        chat_id = self.request.query_params.get('sent_in_id', None)
+        query_set = Message.objects.all()
+        if chat_id is not None:
+            query_set = query_set.filter(sent_in_id=chat_id)
+        last_message_time = self.request.query_params.get('sent_on__gt', None)
+        if last_message_time is not None:
+            query_set = query_set.filter(sent_on__gt=last_message_time)
+        return query_set
+
+
+class MessageViewSet(ChatMessageList, viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     event_manager = ListenerManager()
 

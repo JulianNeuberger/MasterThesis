@@ -143,6 +143,8 @@ END_DISCOUNT_BATCHES = 5000
 START_EPSILON = .5
 EPSILON_DECAY = 1.0001
 
+MEMORY_SIZE = 150
+
 # time to wait for another message after an "commons.bye" before marking a message as terminal (ending conversation)
 SECONDS_FOR_TERMINAL = 60
 SECONDS_PER_DAY = 3600 * 24

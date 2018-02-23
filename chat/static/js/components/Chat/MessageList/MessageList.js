@@ -10,44 +10,79 @@ export default class MessageList extends React.Component {
             data: [],
             scrollLock: false
         };
-        this.loadMessagesFromServer = this.loadMessagesFromServer.bind(this);
+        this.shouldScroll = true;
+        this.loadNewMessagesFromServer = this.loadNewMessagesFromServer.bind(this);
     }
 
-    loadMessagesFromServer() {
-        let props = this.props;
+    loadNewMessagesFromServer() {
+        let lastMessage = this.state.data.length > 0 ? this.state.data[this.state.data.length - 1] : undefined;
         $.ajax({
-            url: props.url,
+            url: this.props.url,
+            method: 'GET',
             data: {
-                chatId: this.props.chatId
+                'sent_in_id': this.props.chatId,
+                'sent_on__gt': typeof(lastMessage) !== 'undefined' ? lastMessage.sent_on : undefined
+            },
+            headers: {
+                'X-CSRFToken': this.props.csrfToken
             },
             datatype: 'json',
             cache: false,
             success: function (data) {
-                this.setState({data: data});
+                if (typeof(data) !== 'undefined' && data.length > 0) {
+                    let newData = this.state.data.concat(data);
+                    let messageCount = newData.length;
+                    newData = messageCount > 150 ? newData.slice(messageCount - 150, messageCount) : newData;
+                    this.setState({
+                        data: newData
+                    })
+                }
+                this.interval = setTimeout(this.loadNewMessagesFromServer, this.props.pollInterval);
             }.bind(this)
         })
     }
 
+
+    messagesChanged(newList) {
+        const oldList = this.state.data;
+        let changed = oldList.length !== newList.length;
+        if (changed) {
+            return true;
+        } else {
+            if (oldList.length === 0) {
+                return false;
+            } else {
+                return oldList[oldList.length - 1].id !== newList[newList.length - 1].id;
+            }
+        }
+    }
+
+    shouldComponentUpdate(nextProps, nextState) {
+        return this.messagesChanged(nextState.data)
+    }
+
+
+    componentWillUpdate(nextProps, nextState) {
+        const scrollPosition = this.messageList.scrollTop;
+        const scrolledDown = this.messageList.scrollHeight - this.messageList.clientHeight;
+        const stateChanged = this.state.data.length !== nextState.data.length;
+        this.shouldScroll = scrollPosition <= 0 || scrollPosition === scrolledDown;
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        this.listEndMarker.scrollIntoView({block: 'end', behavior: 'smooth'})
+    }
+
     componentDidMount() {
-        this.loadMessagesFromServer();
-        this.interval = setInterval(this.loadMessagesFromServer, this.props.pollInterval);
-        this.scrollToEnd();
+        this.loadNewMessagesFromServer();
     }
 
     componentWillDismount() {
         clearTimeout(this.interval);
     }
 
-    componentDidUpdate() {
-        // this.scrollToEnd();
-    }
-
-    handleScroll(event) {
-        console.log('scrolling!')
-    }
-
     scrollToEnd() {
-        if (!this.state.scrollLock) {
+        if (this.shouldScroll) {
             this.listEndMarker.scrollIntoView({behavior: 'smooth'});
         }
     }
@@ -55,16 +90,16 @@ export default class MessageList extends React.Component {
     render() {
         let messages = this.state.data.map(function (message) {
             let className = styles.other;
-            let isUserMessage = message.sent_by === window.django.user.url;
+            let isUserMessage = parseInt(message.sent_by) === parseInt(window.django.user.id);
             if (isUserMessage) {
                 className = styles.own;
             }
-            let ratingComponent = isUserMessage ? (null) : (<MessageRating name={'Interaction'}
+            let ratingComponent = isUserMessage ? (null) : (<MessageRating name={'interaction quality'}
                                                                            csrfToken={this.props.csrfToken}
                                                                            current={parseFloat(message.reward)}
-                                                                           url={message.url}/>);
+                                                                           url={this.props.url + message.id + "/"}/>);
             return (
-                <li key={message.url} className={className}>
+                <li key={message.id} className={className}>
                     <span className={styles.message}>
                         <div>{message.value}</div>
                         {ratingComponent}
@@ -73,11 +108,13 @@ export default class MessageList extends React.Component {
             )
         }.bind(this));
         return (
-            <div className={styles.container}>
+            <div className={styles.container} ref={ele => {
+                this.messageList = ele
+            }}>
                 <ul className={styles.list} ref="messageList">
                     {messages}
                 </ul>
-                <div ref={ele => {
+                <div className={styles.listEnd} ref={ele => {
                     this.listEndMarker = ele;
                 }}/>
             </div>

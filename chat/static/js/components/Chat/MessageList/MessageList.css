@@ -1,6 +1,6 @@
 .message {
     padding: 10px 15px;
-    border-radius: 0;
+    border-radius: 5px;
     border: none;
     color: white;
     display: inline-block;
@@ -9,26 +9,33 @@
 }
 
 .container {
-    height: calc(100% - 50px);
+    height: 100%;
     overflow-y: scroll;
     overflow-x: hidden;
     box-sizing: border-box;
+    padding-bottom: 75px;
 }
 
 .list {
     list-style-type: none;
     box-sizing: border-box;
     margin: 0;
-    padding: 25px 0;
+    padding: 0 15px 75px 15px;
     width: 100%;
     min-height: 100%;
     background: #f5f5f5; /*url('./geometry.png') repeat;*/
 }
 
+.list-end {
+    position: absolute;
+    bottom: 0;
+}
+
 .entry {
-    margin: 5px;
+    margin: 5px 25px;
     animation-duration: .5s;
     animation-timing-function: ease-in-out;
+    position: relative;
 }
 
 .own {
@@ -38,8 +45,26 @@
     animation-name: flyInLeft;
 }
 
+.own:after {
+    content: '';
+
+    display: block;
+    position: absolute;
+    right: -20px;
+    bottom: 0;
+
+    width: 0;
+    height: 0;
+
+    border-width: 5px 10px;
+    border-style: solid;
+    border-color: transparent transparent #0095d4 #0095d4;
+    border-radius: 0;
+}
+
 .own > .message {
     background-color: #0095d4;
+    border-bottom-right-radius: 0;
 }
 
 .other {
@@ -52,6 +77,24 @@
 .other > .message {
     background-color: #d0d0d0;
     color: #333333;
+    border-bottom-left-radius: 0;
+}
+
+.other:after {
+    content: '';
+
+    display: block;
+    position: absolute;
+    left: -20px;
+    bottom: 0;
+
+    width: 0;
+    height: 0;
+
+    border-width: 5px 10px;
+    border-style: solid;
+    border-color: transparent #d0d0d0 #d0d0d0 transparent;
+    border-radius: 0;
 }
 
 /********************************
