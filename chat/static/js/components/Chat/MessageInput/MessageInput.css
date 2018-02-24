@@ -52,9 +52,8 @@
 
     cursor: pointer;
 
-    background: #2bafff url('/static/img/send.svg') no-repeat center;
-    background-size: 50%;
-
+    background: #0095d4 url('/static/img/send.svg') no-repeat center;
+    background-size: 40%;
 
     position: absolute;
     top: 0;

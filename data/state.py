@@ -3,7 +3,7 @@ import logging
 import numpy
 from numpy.core.multiarray import ndarray
 
-from bot.config import INTENTS, NUM_INTENTS
+from bot.config import INTENTS, NUM_INTENTS, UNKNOWN_INTENT
 from turns.models import Sentence, UserProfile
 
 logger = logging.getLogger('data')
@@ -20,7 +20,11 @@ class State:
             assert isinstance(sentence, Sentence)
             self.intent_name = sentence.intent.template.name
             self.intent_vector = State._intent_vector_from_sentence(sentence)
-            self._intent_index = INTENTS.index(self.intent_name)
+            try:
+                self._intent_index = INTENTS.index(self.intent_name)
+            except ValueError:
+                # not in list --> unknown intent
+                self._intent_index = INTENTS.index(UNKNOWN_INTENT)
             self.sentiment = float(sentence.sentiment)
             self.user_profile = sentence.user_profile
             self.user_profile_vector = State._convert_user_profile(sentence.user_profile)

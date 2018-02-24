@@ -8,7 +8,7 @@ export default class MessageRating extends React.Component {
         this.props = props;
         this.state = {
             rating: this.props.current,
-            open: typeof(this.props.open) !== 'undefined' ? this.props.open : true
+            open: typeof(this.props.open) !== 'undefined' ? this.props.open : false
         };
         this.toggleOpen = this.toggleOpen.bind(this);
     }
@@ -43,7 +43,13 @@ export default class MessageRating extends React.Component {
                 <span className={styles["rate-prompt"]} onClick={this.toggleOpen}>
                 </span>
                 <div className={styles.rating}>
-                    <span className={styles.name}>{this.props.name}:</span>
+                    <span className={styles.name}>
+                        <img src={'/static/img/question.svg'}
+                             className={styles.info}
+                             data-tip="rate the way, the bot responded to your message
+                                    (don't rate the quality of provided content)"/>
+                        {this.props.name}:
+                    </span>
                     <Rating initialRating={this.state.rating}
                             start={0}
                             stop={1}

@@ -1,7 +1,7 @@
 import os
+UNKNOWN_INTENT = 'common.unknown'
 INTENTS = [
-    'common.unknown',
-
+    UNKNOWN_INTENT,
     'common.what',
     'common.bad',
     'common.bye',
@@ -59,6 +59,7 @@ ACTIONS = [
     'commons.more',
     'commons.nice_to_meet_you',
     'commons.sorry',
+    'common.you_too', # maybe comment out this one for demoing?
     'offer.player.news',
     'reaction.bad_you_didnt_like',
     'reaction.glad_you_liked_it',
@@ -143,15 +144,14 @@ END_DISCOUNT_BATCHES = 5000
 START_EPSILON = .5
 EPSILON_DECAY = 1.0001
 
-MEMORY_SIZE = 150
+EPISODE_SIZE = 150
+STEPS_PER_EPISODE = 15
 
 # time to wait for another message after an "commons.bye" before marking a message as terminal (ending conversation)
 SECONDS_FOR_TERMINAL = 60
 SECONDS_PER_DAY = 3600 * 24
-SENTENCE_BUFFER_SIZE = int(9 / 0.9)
 
-# number of episodes after which to reset the target value function
-RESET_EPISODES = 10
-
+# noinspection PyUnresolvedReferences
 WEIGHTS_DIR = os.path.join(".", "bot", "weights")
+# noinspection PyUnresolvedReferences
 LOG_DIR = os.path.join(".", "bot", "logs")

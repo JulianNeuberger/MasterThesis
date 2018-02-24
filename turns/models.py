@@ -121,13 +121,32 @@ class Sentence(models.Model):
         return self.value
 
     @staticmethod
-    def sample_bot_sentence_uniform_random(bot_user_name: str):
+    def sample_sentence(said_by_name: str):
         """
-        samples a random sentence
+        samples a random sentence uniformly
 
-        :parameter bot_user_name: a string, representing the bot user name, only "actions" are valid
+        :parameter said_by_name: a string, representing the bot user name, only "actions" are valid
 
         :return: a random sentence object
         """
-        num_sentences = Sentence.objects.filter(said_by=bot_user_name).count()
-        return Sentence.objects.all().filter(said_by=bot_user_name)[random.randint(0, num_sentences - 1)]
+        num_sentences = Sentence.objects.filter(said_by=said_by_name).count()
+        return Sentence.objects.all().filter(said_by=said_by_name)[random.randint(0, num_sentences - 1)]
+
+    @staticmethod
+    def sample_sentence_in_range(said_by_name: str, start: int, stop: int):
+        """
+        uniformly samples a random senentence said by the bot,
+        :param said_by_name: name of the user to filter sentences by
+        :param start: start index to sample from (inclusive)
+        :param stop: stop index to sample to (exclusive)
+
+        :return: a random sentence object
+        """
+        range_size = stop - start
+        assert range_size > 0, 'stop index must be (>=) greater than start index.'
+        episode = [sentence for sentence in Sentence.objects.all()[start:stop] if
+                   sentence.said_by == said_by_name]
+        num_sentences = len(episode)
+        assert num_sentences > 0, 'there are no sentences of {} said in the given range'.format(said_by_name)
+        offset = random.randint(0, num_sentences - 1)
+        return episode[offset]

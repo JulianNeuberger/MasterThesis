@@ -10,8 +10,8 @@ import tensorflow as tf
 from keras.callbacks import TensorBoard
 
 from bot.callbacks import DiscountCallback, EpsilonCallback, TargetResetCallback
-from bot.config import BATCH_SIZE, ACTIONS, TEST_RATIO, LOG_DIR, WEIGHTS_DIR, CONTEXT_LENGTH, NUM_ACTIONS, \
-    STATE_SHAPE, CONTEXT_SHAPE
+from bot.config import BATCH_SIZE, ACTIONS, LOG_DIR, WEIGHTS_DIR, CONTEXT_LENGTH, NUM_ACTIONS, \
+    STATE_SHAPE, CONTEXT_SHAPE, EPISODE_SIZE, STEPS_PER_EPISODE
 from bot.model import get_deep_mind_model
 from data.action import Action
 from data.context import Context
@@ -33,7 +33,7 @@ class QueryableModelInterface(metaclass=Singleton):
 
     instance = None
 
-    def __init__(self, model_name: str, load=True):
+    def __init__(self, model_name: str, load=False):
         """
         Gets/Creates a QueryableModel (singleton!). Initializes the keras.model and Discount/EpsilonCallbacks
 
@@ -43,7 +43,7 @@ class QueryableModelInterface(metaclass=Singleton):
 
         self._callbacks = []
         self._model = None
-        self._steps_seen = 0
+        self._episodes_seen = 0
         self._graph = tf.get_default_graph()
 
         self._model_base_name = model_name
@@ -51,7 +51,10 @@ class QueryableModelInterface(metaclass=Singleton):
         self._init_model(load)
         assert self._model is not None, 'Method _init_model has to set _model member!'
         self._init_callbacks()
+        for callback in self._callbacks:
+            callback.set_model(self._model)
 
+        self._init_directories()
         self._load_stats()
 
         if QueryableModelInterface.instance is None:
@@ -97,21 +100,31 @@ class QueryableModelInterface(metaclass=Singleton):
         with self._graph.as_default():
             return self._prediction_to_action(self._model.predict(raw_input))
 
-    def train(self):
+    def train(self, validate=True):
         with self._training_lock:
             with self._graph.as_default():
-                batch = self._sample_batch()
-                if batch is not None:
-                    inputs, outputs = batch
-                    # epochs is not number of iterations, but the target epoch "id", see keras.fit documentation
-                    target_step = self._steps_seen + 1
-                    self._model.fit(inputs, outputs,
-                                    batch_size=BATCH_SIZE,
-                                    epochs=target_step, initial_epoch=self._steps_seen,
-                                    validation_split=TEST_RATIO,
-                                    callbacks=self._callbacks)
-                    self._steps_seen += 1
-                    self._save_stats()
+                episode_logs = {}
+                training_loss = 0
+                batches_trained = 0
+                episode_number = self._episodes_seen
+                for step in range(0, STEPS_PER_EPISODE):
+                    batch = self._sample_batch(episode_number)
+                    if batch is not None:
+                        loss = self._perform_training_step(batch)
+                        batch_logs = {'loss': loss}
+                        self._on_batch_end(batches_trained, batch_logs)
+                        training_loss += batch_logs['loss']
+                        batches_trained += 1
+                training_loss /= batches_trained
+                episode_logs['loss'] = training_loss
+                if validate:
+                    batch = self._sample_batch(episode_number)
+                    if batch is not None:
+                        x, y = batch
+                        episode_logs['val_loss'] = self._model.test_on_batch(x, y)
+                self._on_episode_end(self._episodes_seen, episode_logs)
+                self._episodes_seen += 1
+                self._save_stats()
 
     def save_weights(self):
         with self._graph.as_default():
@@ -124,13 +137,31 @@ class QueryableModelInterface(metaclass=Singleton):
     def is_saving(self):
         return False
 
-    def _sample_batch(self) -> Optional[Tuple[Dict, Dict]]:
+    def _perform_training_step(self, batch):
+        x, y = batch
+        return self._model.train_on_batch(x, y)
+
+    def _on_batch_end(self, batch_number, logs):
+        for callback in self._callbacks:
+            callback.on_batch_end(batch_number, logs)
+
+    def _on_episode_end(self, episode_number, logs):
+        for callback in self._callbacks:
+            if hasattr(callback, 'writer'):
+                QueryableModelInterface._write_log(callback, ['loss', 'val_loss'], logs.values(), episode_number)
+            callback.on_epoch_end(episode_number, logs)
+
+    def _sample_batch(self, episode_number) -> Optional[Tuple[Dict, Dict]]:
         """
         Method for sampling one batch to use in training.
         Can return None, if training not possible.
         Method is responsible for ordering/shuffling samples.
 
         Implement this method!
+
+        :parameter episode_number: Episode to sample a batch from, 0 is the first episode of data,
+        each episode consists of bot.config.EPISODE_SIZE sentences. pass negative integers to indicate the
+        last (-1), second last (-2) and so on episodes
 
         :return: None, if no training possible, a tuple of dicts of input and output batch otherwise
         """
@@ -156,6 +187,9 @@ class QueryableModelInterface(metaclass=Singleton):
             copyfile(self.model_weight_file, self.model_weight_backup)
             logger.info('Successfully backed up weights.')
 
+    def _init_directories(self):
+        os.makedirs(self.model_weight_directory, exist_ok=True)
+
     def _save_weights(self):
         logger.info('Saving current weights...')
         self._model.save_weights(self.model_weight_file)
@@ -166,19 +200,19 @@ class QueryableModelInterface(metaclass=Singleton):
             with open(self.model_stats_file, 'rb') as file:
                 stats = pickle.load(file)
             try:
-                self._steps_seen = stats['epochs_trained']
+                self._episodes_seen = stats['epochs_trained']
             except KeyError:
                 logger.warning('There is a legacy stats file at "{}", overwrite it!'.format(
                     self.model_stats_file
                 ))
-                self._steps_seen = stats['steps_seen']
+                self._episodes_seen = stats['steps_seen']
         else:
-            self._steps_seen = 0
+            self._episodes_seen = 0
 
     def _save_stats(self):
         logger.info('Writing model stats...')
         stats = {
-            'steps_seen': self._steps_seen
+            'steps_seen': self._episodes_seen
         }
         with open(self.model_stats_file, 'wb') as stats_file:
             pickle.dump(stats, stats_file)
@@ -199,6 +233,16 @@ class QueryableModelInterface(metaclass=Singleton):
     @property
     def model_stats_file(self):
         return os.path.join(self.model_weight_directory, 'stats.pickle')
+
+    @staticmethod
+    def _write_log(callback, names, logs, batch_no):
+        for name, value in zip(names, logs):
+            summary = tf.Summary()
+            summary_value = summary.value.add()
+            summary_value.simple_value = value
+            summary_value.tag = name
+            callback.writer.add_summary(summary, batch_no)
+            callback.writer.flush()
 
 
 class DeepMindModel(QueryableModelInterface):
@@ -240,18 +284,28 @@ class DeepMindModel(QueryableModelInterface):
     def epsilon(self):
         return self._epsilon_callback.value
 
-    def _sample_batch(self) -> Optional[Tuple[Dict, Dict]]:
-        if Sentence.objects.count() == 0:
+    def _sample_batch(self, episode_number) -> Optional[Tuple[Dict, Dict]]:
+        num_sentences = Sentence.objects.count()
+        if num_sentences == 0:
             return None
+
+        start = episode_number * EPISODE_SIZE
+        end = (episode_number + 1) * EPISODE_SIZE
+        if episode_number < 0:
+            start += num_sentences
+            end += num_sentences
+
         sentences = \
-            [Sentence.sample_bot_sentence_uniform_random(self._bot_user.username) for _ in range(0, BATCH_SIZE)]
+            [Sentence.sample_sentence_in_range(self._bot_user.username, start, end) for _ in range(0, BATCH_SIZE)]
         transitions = []
         for sentence in sentences:
-            context_sentences = Sentence.objects \
-                                    .filter(said_in=sentence.said_in, said_on__lte=sentence.said_on) \
-                                    .order_by('-said_on')[:CONTEXT_LENGTH * 2 + 4]
-            context_sentences = list(context_sentences)
-            assert len(context_sentences) >= 4
+            context_sentences = []
+            while len(context_sentences) < 4:
+                context_sentences = Sentence.objects \
+                                        .filter(said_in=sentence.said_in, said_on__lte=sentence.said_on) \
+                                        .order_by('-said_on')[:CONTEXT_LENGTH * 2 + 4]
+                context_sentences = list(context_sentences)
+                sentence = Sentence.sample_sentence_in_range(self._bot_user.username, start, end)
             a1 = Action(context_sentences.pop(0))
             s1 = State(context_sentences.pop(0))
             turns = Turn.sentences_to_turns(context_sentences[:-2], self._bot_user)

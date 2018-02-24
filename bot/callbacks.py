@@ -3,7 +3,7 @@ import logging
 from keras.callbacks import Callback
 from keras.engine import Model
 
-from bot.config import START_DISCOUNT, END_DISCOUNT, END_DISCOUNT_BATCHES, START_EPSILON, RESET_EPISODES, EPSILON_DECAY
+from bot.config import START_DISCOUNT, END_DISCOUNT, END_DISCOUNT_BATCHES, START_EPSILON, EPSILON_DECAY
 
 logger = logging.getLogger("bot")
 
@@ -55,15 +55,13 @@ class DiscountCallback(OvertimeParameterCallback):
 
 
 class TargetResetCallback(Callback):
-    def __init__(self, model: Model, target: Model, reset_episodes: int = RESET_EPISODES):
+    def __init__(self, model: Model, target: Model):
         super().__init__()
         self._epochs_seen = 0
-        self._reset_episodes = reset_episodes
         self._target = target
         self._model = model
 
     def on_epoch_end(self, epoch, logs=None):
         self._epochs_seen += 1
-        if self._epochs_seen % self._reset_episodes == 0:
-            logger.info('Resetting the target function...')
-            self._target.set_weights(self._model.get_weights())
+        logger.info('Resetting the target function...')
+        self._target.set_weights(self._model.get_weights())
