@@ -12,6 +12,7 @@ from keras.callbacks import TensorBoard
 from bot.callbacks import DiscountCallback, EpsilonCallback, TargetResetCallback
 from bot.config import BATCH_SIZE, ACTIONS, LOG_DIR, WEIGHTS_DIR, CONTEXT_LENGTH, NUM_ACTIONS, \
     STATE_SHAPE, CONTEXT_SHAPE, EPISODE_SIZE, STEPS_PER_EPISODE
+from bot.exceptions import NoDataException
 from bot.model import get_deep_mind_model
 from data.action import Action
 from data.context import Context
@@ -33,7 +34,7 @@ class QueryableModelInterface(metaclass=Singleton):
 
     instance = None
 
-    def __init__(self, model_name: str, load=False):
+    def __init__(self, model_name: str, load=True):
         """
         Gets/Creates a QueryableModel (singleton!). Initializes the keras.model and Discount/EpsilonCallbacks
 
@@ -100,31 +101,40 @@ class QueryableModelInterface(metaclass=Singleton):
         with self._graph.as_default():
             return self._prediction_to_action(self._model.predict(raw_input))
 
+    def pre_train(self, validate=True):
+        while self.train(validate):
+            pass
+
     def train(self, validate=True):
         with self._training_lock:
+            if not self._can_sample_batch(self._episodes_seen):
+                return False
             with self._graph.as_default():
                 episode_logs = {}
                 training_loss = 0
                 batches_trained = 0
-                episode_number = self._episodes_seen
+                logger.info('Bot training on episode #{}'.format(self._episodes_seen))
                 for step in range(0, STEPS_PER_EPISODE):
-                    batch = self._sample_batch(episode_number)
+                    batch = self._sample_batch(self._episodes_seen)
                     if batch is not None:
                         loss = self._perform_training_step(batch)
                         batch_logs = {'loss': loss}
                         self._on_batch_end(batches_trained, batch_logs)
                         training_loss += batch_logs['loss']
                         batches_trained += 1
+                    else:
+                        return False
                 training_loss /= batches_trained
                 episode_logs['loss'] = training_loss
                 if validate:
-                    batch = self._sample_batch(episode_number)
+                    batch = self._sample_batch(self._episodes_seen)
                     if batch is not None:
                         x, y = batch
                         episode_logs['val_loss'] = self._model.test_on_batch(x, y)
                 self._on_episode_end(self._episodes_seen, episode_logs)
                 self._episodes_seen += 1
                 self._save_stats()
+                return True
 
     def save_weights(self):
         with self._graph.as_default():
@@ -165,6 +175,10 @@ class QueryableModelInterface(metaclass=Singleton):
 
         :return: None, if no training possible, a tuple of dicts of input and output batch otherwise
         """
+        raise NotImplementedError()
+
+    def _can_sample_batch(self, episode_number) -> bool:
+        """"""
         raise NotImplementedError()
 
     def _prediction_to_action(self, prediction: numpy.ndarray) -> str:
@@ -251,6 +265,8 @@ class DeepMindModel(QueryableModelInterface):
         self._bot_user = bot_user
 
     def _init_model(self, load=True):
+        if not os.path.isdir(LOG_DIR):
+            os.makedirs(LOG_DIR)
         num_models = len([name for name in os.listdir(LOG_DIR) if
                           os.path.isdir(os.path.join(LOG_DIR, name)) and self._model_base_name in name])
         model_number = num_models if not load else num_models - 1
@@ -285,33 +301,26 @@ class DeepMindModel(QueryableModelInterface):
         return self._epsilon_callback.value
 
     def _sample_batch(self, episode_number) -> Optional[Tuple[Dict, Dict]]:
-        num_sentences = Sentence.objects.count()
-        if num_sentences == 0:
-            return None
-
-        start = episode_number * EPISODE_SIZE
-        end = (episode_number + 1) * EPISODE_SIZE
-        if episode_number < 0:
-            start += num_sentences
-            end += num_sentences
-
+        start, stop = DeepMindModel._episode_to_range(episode_number)
         sentences = \
-            [Sentence.sample_sentence_in_range(self._bot_user.username, start, end) for _ in range(0, BATCH_SIZE)]
+            [Sentence.sample_sentence_in_range(self._bot_user.username, start, stop) for _ in range(0, BATCH_SIZE)]
         transitions = []
         for sentence in sentences:
             context_sentences = []
             while len(context_sentences) < 4:
+                assert sentence.said_by == self._bot_user.username
                 context_sentences = Sentence.objects \
-                                        .filter(said_in=sentence.said_in, said_on__lte=sentence.said_on) \
+                                        .filter(said_in=sentence.said_in).filter(said_on__lte=sentence.said_on) \
                                         .order_by('-said_on')[:CONTEXT_LENGTH * 2 + 4]
-                context_sentences = list(context_sentences)
-                sentence = Sentence.sample_sentence_in_range(self._bot_user.username, start, end)
-            a1 = Action(context_sentences.pop(0))
-            s1 = State(context_sentences.pop(0))
-            turns = Turn.sentences_to_turns(context_sentences[:-2], self._bot_user)
+                context_sentences = list(reversed(context_sentences))
+                # resample, since this sample has not enough context
+                sentence = Sentence.sample_sentence_in_range(self._bot_user.username, start, stop)
+            a1 = Action(context_sentences.pop())
+            s1 = State(context_sentences.pop())
+            a0 = Action(context_sentences.pop())
+            s0 = State(context_sentences.pop())
+            turns = Turn.sentences_to_turns(context_sentences, self._bot_user)
             context_t1 = Context.get_single_context(turns, CONTEXT_LENGTH)
-            a0 = Action(context_sentences.pop(0))
-            s0 = State(context_sentences.pop(0))
             turns = Turn.sentences_to_turns(context_sentences, self._bot_user)
             context_t0 = Context.get_single_context(turns, CONTEXT_LENGTH)
             transition = Transition(s0, a0, context_t0, s1, a1, context_t1)
@@ -355,6 +364,25 @@ class DeepMindModel(QueryableModelInterface):
             {'state_input': states, 'context_input': contexts},
             {'quality_output': target_quality}
         )
+
+    def _can_sample_batch(self, episode_number) -> bool:
+        start, stop = DeepMindModel._episode_to_range(episode_number)
+        try:
+            return Sentence.has_episode(start, stop)
+        except NoDataException:
+            return False
+
+    @staticmethod
+    def _episode_to_range(episode_number) -> Tuple[int, int]:
+        num_sentences = Sentence.objects.count()
+        if num_sentences == 0:
+            raise NoDataException
+        start = episode_number * EPISODE_SIZE
+        end = (episode_number + 1) * EPISODE_SIZE
+        if episode_number < 0:
+            start += num_sentences
+            end += num_sentences
+        return start, end
 
     def _prediction_to_action(self, prediction: numpy.ndarray) -> str:
         prediction = prediction[0]

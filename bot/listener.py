@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 
 from bot.bot import DeepMindModel
 from bot.config import CONTEXT_LENGTH, ACTION_SENTENCES
+from bot.responses import response_for_action
 from chat.events import Singleton
 from chat.models import Message, Chat
 from data.context import Context
@@ -53,7 +54,7 @@ class BotListener(metaclass=Singleton):
         human_user = User.objects.get(username=sentence.said_by)
         chat = Chat.objects.get(initiator=human_user, receiver=self._user)
 
-        sentence_value = ACTION_SENTENCES[action_name]
+        sentence_value = response_for_action(action_name)
         message = Message.objects.create(value=sentence_value, sent_by=self._user, sent_in=chat)
         dialogue = sentence.said_in
         intent_template = IntentTemplate.objects.get(name=action_name)
