@@ -43,7 +43,7 @@ class SlotTemplate(models.Model):
     dialog_flow_id = models.CharField(max_length=64, unique=True, null=False)
     name = models.CharField(max_length=64, null=False)
 
-    type = models.ForeignKey(SlotType)
+    type = models.ForeignKey(SlotType, on_delete=models.CASCADE)
     intent_template = models.ForeignKey(IntentTemplate, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -107,13 +107,13 @@ class Sentence(models.Model):
 
     intent = models.ForeignKey(Intent, on_delete=models.CASCADE, null=True)
 
-    raw_sentence = models.ForeignKey(Message, null=True)
+    raw_sentence = models.ForeignKey(Message, null=True, on_delete=models.SET_NULL)
 
     used_in_training = models.BooleanField(default=False)
 
     said_on = models.DateTimeField(auto_now_add=True)
     said_by = models.CharField(max_length=64, null=False)
-    said_in = models.ForeignKey(Dialogue, null=False)
+    said_in = models.ForeignKey(Dialogue, null=False, on_delete=models.CASCADE)
 
     user_profile = models.ForeignKey(UserProfile, on_delete=models.DO_NOTHING, null=True)
 
@@ -135,7 +135,7 @@ class Sentence(models.Model):
     @staticmethod
     def sample_sentence_in_range(said_by_name: str, start: int, stop: int):
         """
-        uniformly samples a random senentence said by the bot,
+        uniformly samples a random sentence said by the bot,
         :param said_by_name: name of the user to filter sentences by
         :param start: start index to sample from (inclusive)
         :param stop: stop index to sample to (exclusive)
@@ -144,9 +144,18 @@ class Sentence(models.Model):
         """
         range_size = stop - start
         assert range_size > 0, 'stop index must be (>=) greater than start index.'
-        episode = [sentence for sentence in Sentence.objects.all()[start:stop] if
-                   sentence.said_by == said_by_name]
+        episode = Sentence.get_episode(start, stop)
+        episode = [sentence for sentence in episode if sentence.said_by==said_by_name]
         num_sentences = len(episode)
         assert num_sentences > 0, 'there are no sentences of {} said in the given range'.format(said_by_name)
         offset = random.randint(0, num_sentences - 1)
         return episode[offset]
+
+    @staticmethod
+    def get_episode(start, stop):
+        """TODO: write me"""
+        return [sentence for sentence in Sentence.objects.all()[start:stop]]
+
+    @staticmethod
+    def has_episode(start, stop):
+        return len(Sentence.get_episode(start, stop)) > 0
