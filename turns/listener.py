@@ -83,13 +83,12 @@ class TurnsTerminator(Thread):
             last_sentence_in_dialogues = Sentence.objects.raw(
                 'SELECT * FROM turns_sentence GROUP BY said_in_id ORDER BY said_on DESC;')
             for sentence in last_sentence_in_dialogues:
-                logger.debug('Considering sentence "{}".'.format(sentence))
                 pause = timezone.now() - sentence.said_on
                 pause = pause.seconds + pause.days * SECONDS_PER_DAY
-                logger.debug("There is a pause of {} seconds!".format(pause))
-                if pause >= SECONDS_FOR_TERMINAL:
+                if pause >= SECONDS_FOR_TERMINAL and not sentence.terminal:
                     logger.info(
-                        "Got no new sentence after {} seconds, this has to be a terminal sentence".format(pause))
+                        "Got no new sentence after {} seconds, {} has to be a terminal sentence".format(pause,
+                                                                                                        sentence.value))
                     sentence.terminal = True
                     sentence.save()
             # Nyquist frequency, so we don't miss terminals

@@ -101,11 +101,16 @@ class QueryableModelInterface(metaclass=Singleton):
         with self._graph.as_default():
             return self._prediction_to_action(self._model.predict(raw_input))
 
-    def pre_train(self, validate=True):
+    def train_available(self, validate=True):
+        """Trains for as many episodes as there are"""
         while self.train(validate):
             pass
 
     def train(self, validate=True):
+        """Trains for a single episode
+
+        :return: a bool indicating whether or not training was possible and successful.
+        """
         with self._training_lock:
             if not self._can_sample_batch(self._episodes_seen):
                 return False
@@ -313,7 +318,7 @@ class DeepMindModel(QueryableModelInterface):
                                         .filter(said_in=sentence.said_in).filter(said_on__lte=sentence.said_on) \
                                         .order_by('-said_on')[:CONTEXT_LENGTH * 2 + 4]
                 context_sentences = list(reversed(context_sentences))
-                # resample, since this sample has not enough context
+                # re-sample, since this sample has not enough context
                 sentence = Sentence.sample_sentence_in_range(self._bot_user.username, start, stop)
             a1 = Action(context_sentences.pop())
             s1 = State(context_sentences.pop())

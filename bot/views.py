@@ -6,7 +6,7 @@ model = DeepMindModel.instance
 
 
 def training_view(request):
-    model.pre_train()
+    model.train_available()
     return HttpResponse('model trained')
 
 

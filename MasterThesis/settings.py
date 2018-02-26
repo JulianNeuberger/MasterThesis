@@ -29,6 +29,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '192.168.34.106',
+    '78.50.47.24',
     'masterthesis.ddns.net'
 ]
 
