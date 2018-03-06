@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'data.apps.DataConfig',
     'bot.apps.BotConfig',
     'turns.apps.TurnsConfig',
+    'content.apps.ContentConfig',
 ]
 
 MIDDLEWARE = [
@@ -209,6 +210,11 @@ LOGGING = {
             'level': 'DEBUG',
         },
         'bot': {
+            'handlers': ['console'],
+            'formatter': 'default',
+            'level': 'DEBUG',
+        },
+        'content': {
             'handlers': ['console'],
             'formatter': 'default',
             'level': 'DEBUG',

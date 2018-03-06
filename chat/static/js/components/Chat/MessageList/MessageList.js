@@ -1,6 +1,6 @@
 import React from 'react'
 import styles from './MessageList.css'
-import MessageRating from "./MessageRating/MessageRating";
+import Message from "./Message/Message";
 
 export default class MessageList extends React.Component {
     constructor(props) {
@@ -89,22 +89,14 @@ export default class MessageList extends React.Component {
 
     render() {
         let messages = this.state.data.map(function (message) {
-            let className = styles.other;
-            let isUserMessage = parseInt(message.sent_by) === parseInt(window.django.user.id);
-            if (isUserMessage) {
-                className = styles.own;
-            }
-            let ratingComponent = isUserMessage ? (null) : (<MessageRating name={'interaction quality'}
-                                                                           csrfToken={this.props.csrfToken}
-                                                                           current={parseFloat(message.reward)}
-                                                                           url={this.props.url + message.id + "/"}/>);
             return (
-                <li key={message.id} className={className}>
-                    <span className={styles.message}>
-                        <div>{message.value}</div>
-                        {ratingComponent}
-                    </span>
-                </li>
+                <Message url={this.props.url}
+                         key={message.id}
+                         id={message.id}
+                         value={message.value}
+                         reward={message.reward}
+                         sent_by={message.sent_by}
+                         csrfToken={this.props.csrfToken}/>
             )
         }.bind(this));
         return (

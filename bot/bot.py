@@ -29,42 +29,59 @@ class QueryableModelInterface(metaclass=Singleton):
     """
     A Singleton, that holds a keras model and can be trained, be queried and predict actions.
     The core of the chat bot.
-    Extend this class to use your models and logic. Implement at least methods _init_model
+    Extend this class to use your models and logic.
     """
 
-    instance = None
-
-    def __init__(self, model_name: str, load=True):
+    def __init__(self, model_base_name: str, load_dir='latest'):
         """
-        Gets/Creates a QueryableModel (singleton!). Initializes the keras.model and Discount/EpsilonCallbacks
+        Gets/Creates a QueryableModel (singleton!).
+        Initializes the keras.model and Discount/EpsilonCallbacks
 
-        :param load: bool, should weights be loaded form the default file? Defaults to True
+        :param model_base_name: base name of that model (e.g. "deep_mind_model")
+        :param load_dir: path to weights to be loaded from. Defaults to latest,
+            which loads the latest model with that basename
         """
         self._training_lock = Lock()
 
         self._callbacks = []
         self._model = None
-        self._episodes_seen = 0
+        self._stats = {
+            'episodes_seen': 0,
+            'samples_seen': 0
+        }
         self._graph = tf.get_default_graph()
 
-        self._model_base_name = model_name
-
-        self._init_model(load)
+        self._model_base_name = model_base_name
+        self._init_model(load_dir)
         assert self._model is not None, 'Method _init_model has to set _model member!'
         self._init_callbacks()
         for callback in self._callbacks:
             callback.set_model(self._model)
 
         self._init_directories()
-        self._load_stats()
 
-        if QueryableModelInterface.instance is None:
-            QueryableModelInterface.instance = self
+        if load_dir:
+            if os.path.isfile(self.model_weight_file):
+                logger.info('Loading model weights from "{}".'.format(self.model_weight_file))
+
+                self._load_stats()
+                self._on_stats_loaded()
+
+                self._model.load_weights(self.model_weight_file)
+                self._on_weights_loaded()
+            else:
+                logger.info('No weights file for model "{}" found, '
+                            'this can be due to the first time running this model...'.format(self._model.name))
 
     def _init_model(self, *args, **kwargs):
         """
         Initializes the underlying keras model used by this QueryableModel.
         Implementation should set the self._model member and is mandatory.
+        Can be called multiple times, to change model implementation
+
+        This method is not responsible for:
+        - loading model stats (episodes trained, ...)
+        - loading model weights
         """
         raise NotImplementedError
 
@@ -75,6 +92,20 @@ class QueryableModelInterface(metaclass=Singleton):
         Defaults to using only TensorBoard callback.
         """
         self._callbacks = [TensorBoard(log_dir=os.path.join(LOG_DIR, self._model.name))]
+
+    def _on_weights_loaded(self):
+        """
+        Override this, to implement behaviour, when the weights file is found and model loaded the weights
+        Use self.model_weights_file property to get the filename
+        """
+        pass
+
+    def _on_stats_loaded(self):
+        """
+        Override this, to implement behaviour, when the stats file is found and loaded
+        Use self.model_stats_file property to get the filename
+        """
+        pass
 
     def predict(self, inputs: Dict[str, numpy.ndarray]):
         """
@@ -102,50 +133,67 @@ class QueryableModelInterface(metaclass=Singleton):
             return self._prediction_to_action(self._model.predict(raw_input))
 
     def pre_train(self, validate=True):
+        logger.info('Starting to train on available episodes.')
+        episodes_trained = 0
         while self.train(validate):
+            episodes_trained += 1
             pass
+        logger.info('Successfully trained on {} episodes.'.format(episodes_trained))
 
     def train(self, validate=True):
+        logger.debug('Acquiring lock...')
         with self._training_lock:
-            if not self._can_sample_batch(self._episodes_seen):
+            if not self._can_sample_batch(self.episodes_seen):
+                logger.debug('No more episodes to train on are available!')
                 return False
             with self._graph.as_default():
                 episode_logs = {}
                 training_loss = 0
                 batches_trained = 0
-                logger.info('Bot training on episode #{}'.format(self._episodes_seen))
+                logger.info('Bot training on episode #{}'.format(self.episodes_seen))
                 for step in range(0, STEPS_PER_EPISODE):
-                    batch = self._sample_batch(self._episodes_seen)
-                    if batch is not None:
-                        loss = self._perform_training_step(batch)
+                    num_samples, x, y = self._sample_batch(self.episodes_seen)
+                    if num_samples > 0:
+                        loss = self._perform_training_step((x, y))
                         batch_logs = {'loss': loss}
                         self._on_batch_end(batches_trained, batch_logs)
                         training_loss += batch_logs['loss']
                         batches_trained += 1
+                        self.samples_seen += num_samples
                     else:
                         return False
                 training_loss /= batches_trained
                 episode_logs['loss'] = training_loss
                 if validate:
-                    batch = self._sample_batch(self._episodes_seen)
-                    if batch is not None:
-                        x, y = batch
+                    num_samples, x, y = self._sample_batch(self.episodes_seen)
+                    if num_samples > 0:
                         episode_logs['val_loss'] = self._model.test_on_batch(x, y)
-                self._on_episode_end(self._episodes_seen, episode_logs)
-                self._episodes_seen += 1
+                self._on_episode_end(self.episodes_seen, episode_logs)
+                self.episodes_seen += 1
                 self._save_stats()
+                self._save_weights()
                 return True
 
     def save_weights(self):
         with self._graph.as_default():
             self._backup_weights()
             self._save_weights()
+            return True
 
     def is_training(self):
         return self._training_lock.locked()
 
     def is_saving(self):
         return False
+
+    @staticmethod
+    def list_available_models():
+        models = []
+        for name in os.listdir(WEIGHTS_DIR):
+            stats = QueryableModelInterface._load_stats_by_path(os.path.join(WEIGHTS_DIR, name, 'stats.pickle'))
+            model = (name, stats)
+            models.append(model)
+        return models
 
     def _perform_training_step(self, batch):
         x, y = batch
@@ -161,7 +209,7 @@ class QueryableModelInterface(metaclass=Singleton):
                 QueryableModelInterface._write_log(callback, ['loss', 'val_loss'], logs.values(), episode_number)
             callback.on_epoch_end(episode_number, logs)
 
-    def _sample_batch(self, episode_number) -> Optional[Tuple[Dict, Dict]]:
+    def _sample_batch(self, episode_number) -> Optional[Tuple[int, Dict, Dict]]:
         """
         Method for sampling one batch to use in training.
         Can return None, if training not possible.
@@ -173,7 +221,7 @@ class QueryableModelInterface(metaclass=Singleton):
         each episode consists of bot.config.EPISODE_SIZE sentences. pass negative integers to indicate the
         last (-1), second last (-2) and so on episodes
 
-        :return: None, if no training possible, a tuple of dicts of input and output batch otherwise
+        :return: a tuple of batch size and dicts of input and output batch
         """
         raise NotImplementedError()
 
@@ -193,16 +241,14 @@ class QueryableModelInterface(metaclass=Singleton):
 
     def _backup_weights(self):
         logger.info('Backing up weight file...')
-        if not os.path.exists(WEIGHTS_DIR):
-            os.makedirs(WEIGHTS_DIR)
-        if not os.path.exists(self.model_weight_directory):
-            os.makedirs(self.model_weight_directory)
+        if not os.path.exists(self.model_directory):
+            os.makedirs(self.model_directory)
         if os.path.isfile(self.model_weight_file):
             copyfile(self.model_weight_file, self.model_weight_backup)
             logger.info('Successfully backed up weights.')
 
     def _init_directories(self):
-        os.makedirs(self.model_weight_directory, exist_ok=True)
+        os.makedirs(self.model_directory, exist_ok=True)
 
     def _save_weights(self):
         logger.info('Saving current weights...')
@@ -211,42 +257,52 @@ class QueryableModelInterface(metaclass=Singleton):
 
     def _load_stats(self):
         if os.path.isfile(self.model_stats_file):
-            with open(self.model_stats_file, 'rb') as file:
-                stats = pickle.load(file)
-            try:
-                self._episodes_seen = stats['epochs_trained']
-            except KeyError:
-                logger.warning('There is a legacy stats file at "{}", overwrite it!'.format(
-                    self.model_stats_file
-                ))
-                self._episodes_seen = stats['steps_seen']
-        else:
-            self._episodes_seen = 0
+            self._stats = self._load_stats_by_path(self.model_stats_file)
+
+    @staticmethod
+    def _load_stats_by_path(path):
+        with open(path, 'rb') as file:
+            return pickle.load(file)
 
     def _save_stats(self):
         logger.info('Writing model stats...')
-        stats = {
-            'steps_seen': self._episodes_seen
-        }
         with open(self.model_stats_file, 'wb') as stats_file:
-            pickle.dump(stats, stats_file)
+            pickle.dump(self._stats, stats_file)
         logger.info('Successfully wrote stats.')
 
     @property
-    def model_weight_directory(self):
+    def episodes_seen(self):
+        return self._stats['episodes_seen']
+
+    @episodes_seen.setter
+    def episodes_seen(self, value):
+        assert value >= 0
+        self._stats['episodes_seen'] = value
+
+    @property
+    def samples_seen(self):
+        return self._stats['samples_seen']
+
+    @samples_seen.setter
+    def samples_seen(self, value):
+        assert value >= 0
+        self._stats['samples_seen'] = value
+
+    @property
+    def model_directory(self):
         return os.path.join(WEIGHTS_DIR, self._model.name)
 
     @property
     def model_weight_file(self):
-        return os.path.join(self.model_weight_directory, 'weights.pickle')
+        return os.path.join(self.model_directory, 'weights.pickle')
 
     @property
     def model_weight_backup(self):
-        return os.path.join(self.model_weight_directory, 'weights.pickle.bkp')
+        return os.path.join(self.model_directory, 'weights.pickle.bkp')
 
     @property
     def model_stats_file(self):
-        return os.path.join(self.model_weight_directory, 'stats.pickle')
+        return os.path.join(self.model_directory, 'stats.pickle')
 
     @staticmethod
     def _write_log(callback, names, logs, batch_no):
@@ -260,27 +316,35 @@ class QueryableModelInterface(metaclass=Singleton):
 
 
 class DeepMindModel(QueryableModelInterface):
-    def __init__(self, bot_user):
-        super().__init__('deep_mind_model')
+    def __init__(self, bot_user, load_dir='latest'):
+        super().__init__(model_base_name='deep_mind_model', load_dir=load_dir)
         self._bot_user = bot_user
 
-    def _init_model(self, load=True):
+    def _init_model(self, load_model_dir=None):
+        """
+        Initializes a DeepMind inspired model. Use the load_model_dir parameter to load a previously
+        trained model.
+
+        :param load_model_dir: directory of a previously trained and saved model, leave None if you want a fresh one
+         use 'latest' for the last trained model with the given base name
+        """
         if not os.path.isdir(LOG_DIR):
             os.makedirs(LOG_DIR)
         num_models = len([name for name in os.listdir(LOG_DIR) if
                           os.path.isdir(os.path.join(LOG_DIR, name)) and self._model_base_name in name])
-        model_number = num_models if not load else num_models - 1
-        model_name = '{}_v{:03d}'.format(self._model_base_name, model_number)
+        if load_model_dir == 'latest':
+            model_number = num_models - 1
+            model_name = '{}_v{:03d}'.format(self._model_base_name, model_number)
+        elif load_model_dir is None:
+            model_number = num_models
+            model_name = '{}_v{:03d}'.format(self._model_base_name, model_number)
+        else:
+            model_name = load_model_dir
         self._model = get_deep_mind_model(name=model_name)
         self._target = get_deep_mind_model()
-        if load:
-            if os.path.isfile(self.model_weight_file):
-                logger.info('Loading model weights from "{}".'.format(self.model_weight_file))
-                self._model.load_weights(self.model_weight_file)
-                self._target.load_weights(self.model_weight_file)
-            else:
-                logger.info('No weights file for model "{}" found, '
-                            'this can be due to the first time running this model...'.format(self._model.name))
+
+        # init target weights
+        self._target.set_weights(self._model.weights)
 
     def _init_callbacks(self):
         self._discount_callback = DiscountCallback()
@@ -292,6 +356,9 @@ class DeepMindModel(QueryableModelInterface):
             TargetResetCallback(self._model, self._target)
         ])
 
+    def _on_weights_loaded(self):
+        self._target.load_weights(self.model_weight_file)
+
     @property
     def discount(self):
         return self._discount_callback.value
@@ -300,7 +367,7 @@ class DeepMindModel(QueryableModelInterface):
     def epsilon(self):
         return self._epsilon_callback.value
 
-    def _sample_batch(self, episode_number) -> Optional[Tuple[Dict, Dict]]:
+    def _sample_batch(self, episode_number) -> Tuple[int, Dict, Dict]:
         start, stop = DeepMindModel._episode_to_range(episode_number)
         sentences = \
             [Sentence.sample_sentence_in_range(self._bot_user.username, start, stop) for _ in range(0, BATCH_SIZE)]
@@ -313,7 +380,7 @@ class DeepMindModel(QueryableModelInterface):
                                         .filter(said_in=sentence.said_in).filter(said_on__lte=sentence.said_on) \
                                         .order_by('-said_on')[:CONTEXT_LENGTH * 2 + 4]
                 context_sentences = list(reversed(context_sentences))
-                # resample, since this sample has not enough context
+                # re-sample, since this sample has not enough context
                 sentence = Sentence.sample_sentence_in_range(self._bot_user.username, start, stop)
             a1 = Action(context_sentences.pop())
             s1 = State(context_sentences.pop())
@@ -326,7 +393,7 @@ class DeepMindModel(QueryableModelInterface):
             transition = Transition(s0, a0, context_t0, s1, a1, context_t1)
             transitions.append(transition)
         if len(transitions) < BATCH_SIZE:
-            return None
+            return 0, {}, {}
 
         assert len(transitions) == BATCH_SIZE
 
@@ -361,6 +428,7 @@ class DeepMindModel(QueryableModelInterface):
             target[action.intent_index] = quality
 
         return (
+            len(states),
             {'state_input': states, 'context_input': contexts},
             {'quality_output': target_quality}
         )

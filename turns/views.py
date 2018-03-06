@@ -43,10 +43,17 @@ def update_terminals(request):
 
 
 def load_intents_from_dialogflow(request, access_token):
-    logger.info('Loading intents from dialogflow using token "{}"'.format(access_token))
+    logger.info('Loading intents from dialogflow.')
     intents = Intents.get_all(access_token)
-    persist_intent_templates(intents)
-    return HttpResponse('Successfully synchronized all intents in database with dialogflow')
+    num_intents = len(intents)
+    intents_created, parameters_created = persist_intent_templates(intents)
+    return HttpResponse(
+        'Successfully synchronized {} intents with dialogflow. '
+        'Created {} new intents with a total of {} new parameters'.format(
+            num_intents,
+            intents_created,
+            parameters_created
+        ))
 
 
 def direct_test(request: HttpRequest):

@@ -1,7 +1,7 @@
 const path = require('path');
-const webpack = require('webpack');
+const ProvidePlugin = require('webpack').ProvidePlugin;
 const BundleTracker = require('webpack-bundle-tracker');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+
 
 module.exports = {
     context: __dirname,
@@ -14,11 +14,11 @@ module.exports = {
 
     plugins: [
         new BundleTracker({filename: './webpack-stats.json'}),
-        new webpack.ProvidePlugin({
+        new ProvidePlugin({
             $: 'jquery',
             jQuery: 'jquery',
             'window.jQuery': 'jquery'
-        })
+        }),
     ],
 
     module: {

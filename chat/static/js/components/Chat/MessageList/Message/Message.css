@@ -1,0 +1,119 @@
+.message {
+    padding: 10px 15px;
+    border-radius: 5px;
+    border: none;
+    color: white;
+    display: inline-block;
+    max-width: 70%;
+    min-width: 50px;
+}
+
+.entry {
+    margin: 5px 25px;
+    animation-duration: .5s;
+    animation-timing-function: ease-in-out;
+    position: relative;
+}
+
+.own {
+    composes: entry;
+    text-align: right;
+    padding-left: 25px;
+    animation-name: flyInLeft;
+}
+
+.own:after {
+    content: '';
+
+    display: block;
+    position: absolute;
+    right: -20px;
+    bottom: 0;
+
+    width: 0;
+    height: 0;
+
+    border-width: 5px 10px;
+    border-style: solid;
+    border-color: transparent transparent #0095d4 #0095d4;
+    border-radius: 0;
+}
+
+.own > .message {
+    background-color: #0095d4;
+    border-bottom-right-radius: 0;
+}
+
+.other {
+    composes: entry;
+    text-align: left;
+    padding-right: 25px;
+    animation-name: flyInRight;
+}
+
+.other > .message {
+    background-color: #d0d0d0;
+    color: #333333;
+    border-bottom-left-radius: 0;
+}
+
+.other:after {
+    content: '';
+
+    display: block;
+    position: absolute;
+    left: -20px;
+    bottom: 0;
+
+    width: 0;
+    height: 0;
+
+    border-width: 5px 10px;
+    border-style: solid;
+    border-color: transparent #d0d0d0 #d0d0d0 transparent;
+    border-radius: 0;
+}
+
+.rich-container {
+    display: block;
+    width: 100%;
+}
+
+.rich-container > * {
+    display: block;
+    border: none;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+}
+
+/********************************
+ANIMATIONS                      *
+********************************/
+@keyframes flyInLeft {
+    from {
+        opacity: 0;
+        position: relative;
+        right: -100%;
+    }
+
+    to {
+        opacity: 1;
+        right: 0;
+        position: relative;
+    }
+}
+
+@keyframes flyInRight {
+    from {
+        opacity: 0;
+        position: relative;
+        right: -50px;
+    }
+
+    to {
+        opacity: 1;
+        position: relative;
+        right: 0;
+    }
+}
