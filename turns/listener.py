@@ -20,7 +20,7 @@ class ChatMessageListener:
         self._terminator = TurnsTerminator()
         self._terminator.start()
         self._bot_user = User.objects.get(username='Chatbot')
-        self._bot_listener = BotListener(bot_user=self._bot_user)
+        self._bot_listener = BotListener(self._bot_user)
 
     def on_message(self, event: ChatMessageEvent):
         logger.debug('Processing ChatMessageEvent in ChatMessageListener.')

@@ -24,27 +24,16 @@ class Dialogue(models.Model):
         return 'Dialog in {}'.format(self.with_user)
 
 
+class ParameterTemplate(models.Model):
+    name = models.CharField(max_length=64, null=False)
+    is_list = models.BooleanField(default=False)
+
+
 class IntentTemplate(models.Model):
     dialog_flow_id = models.CharField(max_length=64, unique=True, null=False)
     name = models.CharField(max_length=64, unique=True, null=False)
 
-    def __str__(self):
-        return self.name
-
-
-class SlotType(models.Model):
-    name = models.CharField(max_length=64, unique=True, null=False)
-
-    def __str__(self):
-        return self.name
-
-
-class SlotTemplate(models.Model):
-    dialog_flow_id = models.CharField(max_length=64, unique=True, null=False)
-    name = models.CharField(max_length=64, null=False)
-
-    type = models.ForeignKey(SlotType, on_delete=models.CASCADE)
-    intent_template = models.ForeignKey(IntentTemplate, on_delete=models.CASCADE)
+    parameters = models.ManyToManyField(to=ParameterTemplate)
 
     def __str__(self):
         return self.name
@@ -57,22 +46,38 @@ class Intent(models.Model):
         return 'template instance of "{}"'.format(self.template)
 
 
-class Slot(models.Model):
+class Parameter(models.Model):
     value = models.CharField(max_length=128)
 
-    template = models.ForeignKey(SlotTemplate, on_delete=models.CASCADE)
+    template = models.ForeignKey(ParameterTemplate, on_delete=models.CASCADE)
     intent = models.ForeignKey(Intent, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.value
 
 
-class Player(models.Model):
+class Shoe(models.Model):
     name = models.CharField(max_length=64, unique=True, null=False)
+
+    url = models.CharField(max_length=1024, null=False)
 
 
 class Team(models.Model):
     name = models.CharField(max_length=64, unique=True, null=False)
+
+
+class Player(models.Model):
+    name = models.CharField(max_length=64, unique=True, null=False)
+
+    age = models.IntegerField(null=True)
+    height = models.DecimalField(max_digits=3, decimal_places=2, null=True)
+    goals = models.IntegerField(null=True)
+
+    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True)
+    shoes = models.ForeignKey(Shoe, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return '<Player: {}>'.format(self.name)
 
 
 class UserProfile(models.Model):
@@ -145,7 +150,7 @@ class Sentence(models.Model):
         range_size = stop - start
         assert range_size > 0, 'stop index must be (>=) greater than start index.'
         episode = Sentence.get_episode(start, stop)
-        episode = [sentence for sentence in episode if sentence.said_by==said_by_name]
+        episode = [sentence for sentence in episode if sentence.said_by == said_by_name]
         num_sentences = len(episode)
         assert num_sentences > 0, 'there are no sentences of {} said in the given range'.format(said_by_name)
         offset = random.randint(0, num_sentences - 1)

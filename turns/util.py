@@ -8,7 +8,8 @@ from requests import post
 
 import dialogflow
 from bot.config import SECONDS_FOR_TERMINAL, SECONDS_PER_DAY
-from turns.models import Sentence, Slot, Intent, IntentTemplate, Dialogue, UserProfile, Player, Team
+from turns.models import Sentence, Parameter, Intent, IntentTemplate, Dialogue, UserProfile, Player, Team, \
+    ParameterTemplate
 
 logger = logging.getLogger('turns')
 
@@ -91,14 +92,25 @@ def update_intent_for_single_sentence(sentence: Sentence, override=False, save=T
             sentence.intent = intent
             parameters = result['parameters']
             logger.debug('Successfully read parameters from response.')
-            for entity_template in intent_template.slottemplate_set.all():
-                entity_value = parameters[entity_template.name]
-                Slot.objects.create(template=entity_template, intent=intent, value=entity_value)
+            expected_parameters = intent_template.parameters.all()
+            for parameter_template in expected_parameters:
+                try:
+                    parameter_value = parameters[parameter_template.name]
+                    parameter_value = _sanitize_parameter_value(parameter_value, parameter_template)
+                    if parameter_value is not None:
+                        Parameter.objects.create(template=parameter_template, intent=intent, value=parameter_value)
+                    else:
+                        raise KeyError()
+                except KeyError:
+                    logger.info(
+                        'Expected intent "{}" to have parameter "{}", but found none in sentence "{}".'.format(
+                            intent_template.name,
+                            parameter_template.name,
+                            sentence.value
+                        ))
         except KeyError:
             logger.debug('Failed to read response, no intent available.')
             sentence.intent = None
-        intent_name = sentence.intent.template.name if sentence.intent is not None else 'unknown_intent'
-        logger.debug("New intent for sentence '{}' is {}".format(sentence.value, intent_name))
         if save:
             sentence.save()
     return sentence.intent.template.name if sentence.intent is not None else 'commons.unknown'
@@ -162,7 +174,7 @@ def update_user_profile_age(user_profile: UserProfile, intent: Intent):
     user_profile.age = get_object_from_intent('age', 'userprofile.response.age', get_age_from_slot, intent)
 
 
-def get_age_from_slot(slot: Slot):
+def get_age_from_slot(slot: Parameter):
     return int(ast.literal_eval(slot.value)['amount'])
 
 
@@ -199,7 +211,7 @@ def get_player_from_intent(intent: Intent):
 def get_object_from_intent(slot_name: str, intent_name: str, retrieval_method, intent: Intent):
     assert intent.template.name == intent_name
     obj = None
-    for slot in intent.slot_set.all():
+    for slot in intent.parameter_set.all():
         logger.debug('Searching for "{}", considering "{}"'.format(slot_name, slot.template.name))
         if slot.template.name == slot_name:
             logger.debug(
@@ -277,5 +289,16 @@ def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False, sav
 def update_all_for_single_sentence(sentence: Sentence, save=True):
     update_intent_for_single_sentence(sentence, True, save)
     update_sentiment_for_single_sentence(sentence, True, save)
-    # update_reward_for_single_sentence(sentence, True, save)
     return sentence
+
+
+def _sanitize_parameter_value(parameter_value, parameter_template: ParameterTemplate):
+    if not parameter_template.is_list and isinstance(parameter_value, list):
+        # simply take the first value
+        if len(parameter_value) > 0:
+            parameter_value = parameter_value[0]
+        else:
+            return None
+    if isinstance(parameter_value, str) and len(parameter_value) == 0:
+        return None
+    return parameter_value

@@ -1,13 +1,14 @@
 import logging
+import time
 
 import numpy
 from django.contrib.auth.models import User
 
 from bot.bot import DeepMindModel
-from bot.config import CONTEXT_LENGTH, ACTION_SENTENCES
-from bot.responses import response_for_action
+from bot.config import CONTEXT_LENGTH
 from chat.events import Singleton
 from chat.models import Message, Chat
+from content.responses import ResponseFactory
 from data.context import Context
 from data.state import State
 from data.turn import Turn
@@ -18,12 +19,18 @@ logger = logging.getLogger('bot')
 
 
 class BotListener(metaclass=Singleton):
-    def __init__(self, bot_user: User):
-        self._user = bot_user
-        self._model = DeepMindModel(bot_user=self._user)
+    def __init__(self, bot_user):
+        self._bot_user = bot_user
+        self.model = DeepMindModel(bot_user=self._bot_user)
+        self._response_factories = {}
+        self._init_factories()
 
     def on_message(self, sentence):
         assert isinstance(sentence, Sentence)
+
+        factory = self._response_factories.get(sentence.said_by, None)
+        if factory:
+            factory.update(sentence.intent)
 
         logger.debug("Received notification on new message to bot, processing...")
 
@@ -34,34 +41,34 @@ class BotListener(metaclass=Singleton):
         sentences = sentence_query[:num_sentences]
         sentences = list(reversed(sentences))
         single_sentence = None
-        while single_sentence is None or single_sentence.said_by == self._user:
+        while single_sentence is None or single_sentence.said_by == self._bot_user:
             # we need to find the first user made sentence
             try:
                 single_sentence = sentences.pop()
             except IndexError:
                 # there never was a user-said sentence... skip the response!
                 return
-        while len(sentences) > 0 and sentences[0].said_by == self._user:
+        while len(sentences) > 0 and sentences[0].said_by == self._bot_user:
             # the first sentence needs to be user-said
             sentences.pop(0)
         logger.debug('Reacting to sentence "{}"'.format(single_sentence))
         logger.debug('Have these sentences as context: {}'.format(sentences))
-        turns = Turn.sentences_to_turns(sentences, self._user)
+        turns = Turn.sentences_to_turns(sentences, self._bot_user)
         context = Context.get_single_context(turns, CONTEXT_LENGTH)
         state = State(sentence)
-        action_name = self._model.query({'state_input': numpy.array([state.as_vector()]),
+        action_name = self.model.query({'state_input': numpy.array([state.as_vector()]),
                                          'context_input': numpy.array([context.as_matrix()])})
         human_user = User.objects.get(username=sentence.said_by)
-        chat = Chat.objects.get(initiator=human_user, receiver=self._user)
+        chat = Chat.objects.get(initiator=human_user, receiver=self._bot_user)
 
-        sentence_value = response_for_action(action_name)
-        message = Message.objects.create(value=sentence_value, sent_by=self._user, sent_in=chat)
+        sentence_value = self._response_factories[human_user.username].create_response(action_name)
+        message = Message.objects.create(value=sentence_value, sent_by=self._bot_user, sent_in=chat)
         dialogue = sentence.said_in
         intent_template = IntentTemplate.objects.get(name=action_name)
         intent = Intent.objects.create(template=intent_template)
         response = Sentence.objects.create(value=sentence_value,
                                            said_in=dialogue,
-                                           said_by=self._user,
+                                           said_by=self._bot_user,
                                            raw_sentence=message,
                                            intent=intent,
                                            sentiment=0)
@@ -74,4 +81,18 @@ class BotListener(metaclass=Singleton):
             action_name
         ))
 
-        self._model.train()
+        self.model.train()
+
+    def _init_factories(self):
+        logger.info('Initializing factories...')
+        start = time.time()
+        for name in Sentence.objects.exclude(said_by=self._bot_user.username).values_list('said_by', flat=True).distinct():
+            response_factory = ResponseFactory()
+            for sentence in Sentence.objects.filter(said_by=name).order_by('said_on'):
+                if sentence.intent is not None:
+                    response_factory.update(sentence.intent)
+            self._response_factories[name] = response_factory
+        logger.info('Done initializing {} factories, took {:.4}s!'.format(
+            len(self._response_factories.keys()),
+            time.time() - start,
+        ))
