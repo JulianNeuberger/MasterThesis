@@ -6,6 +6,8 @@ export default class Message extends React.Component {
     constructor(props) {
         super(props);
         this.VIDEO_REGEX = /youtube.com\/(?:embed\/|watch\?v=)([a-zA-Z0-9_-]{11})/;
+        this.IMAGE_REGEX = /([^\s]*\.(?:jpg|jpeg|png|gif))/;
+
     }
 
     render() {
@@ -36,7 +38,7 @@ export default class Message extends React.Component {
     }
 
     renderRichContent() {
-        const match = this.VIDEO_REGEX.exec(this.props.value);
+        let match = this.VIDEO_REGEX.exec(this.props.value);
         if (match) {
             const url = 'https://www.youtube.com/embed/' + match[1];
             return (
@@ -44,8 +46,20 @@ export default class Message extends React.Component {
                     <iframe src={url}/>
                 </div>
             );
-        } else {
-            return (null);
         }
+        match = this.IMAGE_REGEX.exec(this.props.value);
+        if (match) {
+            const url= match[1];
+            return (
+                <div className={styles["rich-container"]}>
+                    <img src={url}/>
+                </div>
+            )
+        }
+        return (null);
+    }
+
+    renderVideo() {
+
     }
 }
