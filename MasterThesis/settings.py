@@ -25,10 +25,12 @@ SECRET_KEY = 'peq#qb7-@_fgg#l0@o!xb4rwpo@2vb@**1m+9h+ju*#b^dj_%k'
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    '*',
     '.ngrok.io',
     'localhost',
     '127.0.0.1',
     '192.168.34.106',
+    '78.50.47.24',
     'masterthesis.ddns.net'
 ]
 

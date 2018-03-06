@@ -3,10 +3,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Test</title>
+    <title>{{ request.user.username }}'s Chat</title>
 </head>
 <body style="margin: 0; padding: 0; overflow: hidden;
-        min-height: 100vh">
+        min-height: 100vh;">
 <script>
     window.django = {
         csrfToken: "{{ csrf_token }}",

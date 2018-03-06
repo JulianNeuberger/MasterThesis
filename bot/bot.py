@@ -141,6 +141,10 @@ class QueryableModelInterface(metaclass=Singleton):
         logger.info('Successfully trained on {} episodes.'.format(episodes_trained))
 
     def train(self, validate=True):
+        """Trains for a single episode
+
+        :return: a bool indicating whether or not training was possible and successful.
+        """
         logger.debug('Acquiring lock...')
         with self._training_lock:
             if not self._can_sample_batch(self.episodes_seen):
@@ -257,12 +261,17 @@ class QueryableModelInterface(metaclass=Singleton):
 
     def _load_stats(self):
         if os.path.isfile(self.model_stats_file):
-            self._stats = self._load_stats_by_path(self.model_stats_file)
-
-    @staticmethod
-    def _load_stats_by_path(path):
-        with open(path, 'rb') as file:
-            return pickle.load(file)
+            with open(self.model_stats_file, 'rb') as file:
+                stats = pickle.load(file)
+            try:
+                self._episodes_seen = stats['epochs_trained']
+            except KeyError:
+                logger.warning('There is a legacy stats file at "{}", overwrite it!'.format(
+                    self.model_stats_file
+                ))
+                self._episodes_seen = stats['steps_seen']
+        else:
+            self._episodes_seen = 0
 
     def _save_stats(self):
         logger.info('Writing model stats...')

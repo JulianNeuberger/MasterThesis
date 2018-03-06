@@ -23,7 +23,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    border: none;
+    border: solid 1px #0095d4;
     transition: outline .25s, box-shadow .25s, width .25s;
     border-radius: 25px;
 }
@@ -34,9 +34,10 @@
 }
 
 .container:hover .send, .input:focus + .send {
-    right: 0;
+    opacity: 1;
+    transform: scale(1);
 
-    transition: right .25s ease-in-out;
+    transition: all .15s ease-in-out;
 }
 
 .send {
@@ -55,9 +56,12 @@
     background: #0095d4 url('/static/img/send.svg') no-repeat center;
     background-size: 40%;
 
+    opacity: 0;
+    transform: scale(.4);
+
     position: absolute;
     top: 0;
-    right: -75px;
+    right: 0;
 
-    transition: right .25s ease-in-out;
+    transition: all .15s ease-in-out;
 }
