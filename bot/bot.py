@@ -353,7 +353,7 @@ class DeepMindModel(QueryableModelInterface):
         self._target = get_deep_mind_model()
 
         # init target weights
-        self._target.set_weights(self._model.weights)
+        self._target.set_weights(self._model.get_weights())
 
     def _init_callbacks(self):
         self._discount_callback = DiscountCallback()
