@@ -78,8 +78,8 @@ class TurnsTerminator(Thread):
     def run(self):
         sleep(5)
         logger.info("Started TurnsTerminator.")
+        logger.info("TurnsTerminator checking for unterminated sentences.")
         while True:
-            logger.info("TurnsTerminator checking for unterminated sentences.")
             last_sentence_in_dialogues = Sentence.objects.raw(
                 'SELECT * FROM turns_sentence GROUP BY said_in_id ORDER BY said_on DESC;')
             for sentence in last_sentence_in_dialogues:
