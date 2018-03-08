@@ -1,6 +1,5 @@
 import React from "react";
-import styles from './Button.css'
-import {toast} from "react-toastify";
+import styles from './Button.module.css'
 
 export default class Button extends React.Component {
     constructor(props) {
@@ -9,63 +8,41 @@ export default class Button extends React.Component {
         this.state = {
             running: false,
         };
-        this.triggerAction = this.triggerAction.bind(this);
-        this.updateStatus = this.updateStatus.bind(this);
-    }
-
-    componentDidMount() {
-        this.updateStatus();
-    }
-
-    updateStatus() {
-        $.ajax({
-            url: this.props.statusUrl,
-            data: this.props.statusParams,
-            method: 'GET',
-            headers: {
-                'X-CSRFToken': this.props.csrfToken
-            },
-            success: function (data) {
-                let newStatus = data[this.props.statusKey];
-                if (newStatus !== this.state.running) {
-                    if (!newStatus) {
-                        toast.success(this.props.actionName + ' successful!', {
-                            autoClose: 3500,
-                        });
-                    }
-                }
-                this.setState({
-                    running: data[this.props.statusKey]
-                });
-                this.interval = setTimeout(this.updateStatus, this.props.pollInterval);
-            }.bind(this)
-        });
-    }
-
-    triggerAction(event) {
-        event.preventDefault();
-        $.ajax({
-            url: this.props.actionUrl,
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': this.props.csrfToken
-            },
-        });
-        this.setState({
-            running: true
-        });
-        toast.info('started ' + this.props.actionName + '...', {
-            autoClose: 3500,
-        });
+        this.styleMap = {
+            'light': styles.light,
+            'normal': styles.normal
+        }
     }
 
     render() {
+        let buttonStyle = this.styleMap[this.props.style];
+        if (typeof(buttonStyle) === 'undefined') {
+            buttonStyle = this.styleMap.normal;
+        }
+        let hoveringStyle = this.props.hovering ? styles.hovering : '';
         return (
-            <span onClick={this.triggerAction} className={styles.container}
+            <span onClick={this.props.onClick}
+                  className={[styles.container, buttonStyle, hoveringStyle].join(' ')}
                   data-tip={"trigger " + this.props.actionName}>
-                <img src={this.props.iconUrl}
-                     className={[styles.icon, this.state.running ? this.props.runningStyle : this.props.normalStyle]}/>
+                {this.renderIcon()}
+                {this.renderText()}
             </span>
         )
+    }
+
+    renderIcon() {
+        if (typeof(this.props.iconSrc) !== 'undefined') {
+            return (<img src={this.props.iconSrc} className={styles.icon}/>)
+        } else {
+            return (null)
+        }
+    }
+
+    renderText() {
+        if (typeof(this.props.children) !== 'undefined' && this.props.children.length > 0) {
+            return (<span className={styles.text}>{this.props.children}</span>)
+        } else {
+            return (null)
+        }
     }
 }

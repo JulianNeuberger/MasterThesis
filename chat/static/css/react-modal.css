@@ -1,0 +1,18 @@
+.ReactModal__Content {
+    opacity: 0;
+    top: -35px;
+    transform: scale(.5);
+}
+
+.ReactModal__Content--after-open {
+    opacity: 1;
+    top: 35px;
+    transform: scale(1);
+    transition: all 250ms;
+}
+
+.ReactModal__Content--before-close {
+    opacity: 0;
+    top: -35px;
+    transform: scale(.5);
+}

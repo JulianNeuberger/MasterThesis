@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './Message.css'
+import styles from './Message.module.css'
 import MessageRating from "./MessageRating/MessageRating";
 
 export default class Message extends React.Component {
@@ -33,16 +33,12 @@ export default class Message extends React.Component {
         )
     }
 
-    renderUrls() {
-
-    }
-
     renderRichContent() {
         let match = this.VIDEO_REGEX.exec(this.props.value);
         if (match) {
             const url = 'https://www.youtube.com/embed/' + match[1];
             return (
-                <div className={styles["rich-container"]}>
+                <div className={[styles["rich-container"], styles["video-container"]].join(' ')}>
                     <iframe src={url}/>
                 </div>
             );

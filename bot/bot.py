@@ -39,7 +39,7 @@ class QueryableModelInterface(metaclass=Singleton):
 
         :param model_base_name: base name of that model (e.g. "deep_mind_model")
         :param load_dir: path to weights to be loaded from. Defaults to latest,
-            which loads the latest model with that basename
+            which loads the latest model with that basename, use None for a "fresh" model
         """
         self._training_lock = Lock()
 
@@ -260,18 +260,22 @@ class QueryableModelInterface(metaclass=Singleton):
         logger.info('Successfully saved weights.')
 
     def _load_stats(self):
-        if os.path.isfile(self.model_stats_file):
-            with open(self.model_stats_file, 'rb') as file:
-                stats = pickle.load(file)
-            try:
-                self._episodes_seen = stats['epochs_trained']
-            except KeyError:
-                logger.warning('There is a legacy stats file at "{}", overwrite it!'.format(
-                    self.model_stats_file
-                ))
-                self._episodes_seen = stats['steps_seen']
+        self._stats = QueryableModelInterface._load_stats_by_path(self.model_stats_file)
+
+    @staticmethod
+    def _load_stats_by_path(path):
+        if os.path.isfile(path):
+            with open(path, 'rb') as file:
+                return pickle.load(file)
         else:
-            self._episodes_seen = 0
+            return QueryableModelInterface._get_empty_stats()
+
+    @staticmethod
+    def _get_empty_stats():
+        return {
+            'episodes_seen': 0,
+            'samples_seen': 0
+        }
 
     def _save_stats(self):
         logger.info('Writing model stats...')

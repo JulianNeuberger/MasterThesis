@@ -4,15 +4,15 @@ from datetime import datetime
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation
-from django.http import JsonResponse
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import F
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import viewsets, generics
 
 from chat.events import ListenerManager, ChatMessageEvent
-from chat.models import Message, Chat
+from chat.models import Message, Chat, Settings
 from chat.serializers import MessageSerializer, UserSerializer, ChatSerializer
 
 logger = logging.getLogger('chat')
@@ -21,13 +21,18 @@ logger = logging.getLogger('chat')
 @login_required
 @ensure_csrf_cookie
 def single_chat(request, chat_id):
-    serializing_context = {'request': request}
-    user_serializer = UserSerializer(request.user, context=serializing_context)
-    chat = Chat.objects.get(id=chat_id)
-    chat_serializer = ChatSerializer(chat, context=serializing_context)
+    settings, _ = Settings.objects.get_or_create(for_user=request.user)
+    settings.visits = F('visits') + 1
+    settings.save()
+    settings.refresh_from_db()
+    logger.debug('Got a visit from {}, this is the {}th visit.'.format(
+        request.user.username,
+        settings.visits
+    ))
     context = {
-        'user_id': user_serializer.data['id'],
-        'chat_id': chat_serializer.data['id']
+        'user_id': request.user.id,
+        'chat_id': chat_id,
+        'settings': settings.visits
     }
     return TemplateResponse(request=request, template='chat/single.html', context=context)
 

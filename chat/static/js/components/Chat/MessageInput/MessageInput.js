@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './MessageInput.css'
+import styles from './MessageInput.module.css'
 
 export default class MessageInput extends React.Component {
     constructor(props) {

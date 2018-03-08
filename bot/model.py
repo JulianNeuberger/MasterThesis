@@ -101,7 +101,6 @@ def get_imagination_model() -> Model:
 
     model = Model(inputs=[state, context], outputs=[combined_quality], name='imagination_model')
     model.compile(optimizer='sgd', loss='mse')
-    model.summary()
     return model
 
 
@@ -122,7 +121,6 @@ def get_deep_mind_model(name=None) -> Model:
 
     model = Model(name=name, inputs=[state_input, context_input], outputs=[output_layer])
     model.compile('adam', 'mse')
-    model.summary()
     return model
 
 
@@ -140,7 +138,6 @@ def get_simple_model(name=None) -> Model:
 
     model = Model(inputs=[state, action], outputs=[x], name=name)
     model.compile(optimizer='sgd', loss='mse')
-    model.summary()
     return model
 
 

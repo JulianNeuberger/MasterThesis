@@ -1,6 +1,6 @@
 import React from 'react';
 import Rating from 'react-rating';
-import styles from './MessageRating.css'
+import styles from './MessageRating.module.css'
 
 export default class MessageRating extends React.Component {
     constructor(props) {

@@ -2,10 +2,10 @@ import React from 'react'
 import ReactTooltip from 'react-tooltip'
 import {ToastContainer} from "react-toastify"
 
+import styles from './Chat.module.css'
 import MessageList from './MessageList/MessageList'
 import MessageInput from './MessageInput/MessageInput'
 import Controls from "./Controls/Controls";
-import styles from './Chat.css'
 
 export default class Chat extends React.Component {
     constructor(props) {

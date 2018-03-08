@@ -10,4 +10,5 @@ ReactDOM.render(<Chat url='/chat/api/messages/'
                       chatId={window.django.chat.id}
                       userId={window.django.user.id}
                       csrfToken={window.django.csrfToken}
+                      settings={window.django.user.settings}
                       pollInterval={1000}/>, document.getElementById('container'));

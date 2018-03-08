@@ -22,7 +22,7 @@ module.exports = {
     ],
 
     module: {
-        loaders: [
+        rules: [
             {
                 test: /\.jsx?$/,
                 exclude: /node_modules/,
@@ -32,11 +32,34 @@ module.exports = {
                 }
             },
             {
-                loaders: [
+                loader: [
                     'style-loader',
-                    'css-loader?importLoader=1&modules&localIdentName=[path]___[name]__[local]___[hash:base64:5]'
+                    {
+                        loader: 'css-loader',
+                        options: {
+                            importLoader: 1,
+                            modules: true,
+                            camelCase: true,
+                            localIdentName: '[path]___[name]__[local]___[hash:base64:5]'
+                        }
+                    }
                 ],
-                test: /\.css$/
+                test: /\.module\.css$/,
+
+            },
+            {
+                loader: [
+                    'style-loader',
+                    {
+                        loader: 'css-loader',
+                        options: {
+                            importLoader: 0,
+                            modules: true,
+                            localIdentName: '[name]'
+                        }
+                    }
+                ],
+                test: /^((?!\.module).)*\.css$/,
             },
             {
                 test: /\.(png|jpg|svg|gif)$/,
