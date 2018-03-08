@@ -7,40 +7,19 @@ export default class InformationModal extends React.Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = {
-            open: typeof(props.open) !== 'undefined' ? props.open : true
-        };
-        this.close = this.close.bind(this);
-        this.open = this.open.bind(this);
     }
-
-    close() {
-        this.setState({open: false})
-    }
-
-    open() {
-        this.setState({open: true})
-    }
-
-
-    componentWillReceiveProps(nextProps) {
-        this.setState({
-            open: typeof(nextProps.open) !== 'undefined' ? nextProps.open : true
-        });
-    }
-
 
     render() {
-        const stateClass = this.state.open ? styles.open : '';
+        const visibilityClass = this.props.open ? styles.open : '';
         return (
-            <Modal isOpen={this.state.open}
-                   className={[styles.container, stateClass].join(' ')}
-                   overlayClassName={[styles.overlay, stateClass].join(' ')}
+            <Modal isOpen={this.props.open}
+                   className={[styles.container, visibilityClass].join(' ')}
+                   overlayClassName={[styles.overlay, visibilityClass].join(' ')}
                    shouldCloseOnEsc={true}
                    shouldCloseOnOverlayClick={true}
                    closeTimeoutMS={500}
                    ariaHideApp={false}
-                   onRequestClose={this.close}>
+                   onRequestClose={this.props.onClose}>
                 <div className={styles.content}>
                     <img src={'/static/img/question.svg'} className={styles.icon}/>
                     <h3> Welcome !</h3>
@@ -65,7 +44,10 @@ export default class InformationModal extends React.Component {
                         Thank you for your help in training BOTNAME HERE!
                     </p>
                     <p>
-                        <Button onClick={this.close} style={"light"} hovering={true}>Got it!</Button>
+                        <Button onClick={this.props.onClose} style={"light"} hovering={true}>Got it!</Button>
+                        <Button onClick={this.props.onDisable} style={"subtle"} hovering={false}>
+                            Don't show again
+                        </Button>
                     </p>
                 </div>
             </Modal>

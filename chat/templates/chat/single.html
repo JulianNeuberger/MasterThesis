@@ -16,7 +16,8 @@
             last_login: "{{ request.user.last_login }}",
             id: "{{ user_id }}",
             settings: {
-                visits: "{{ request.user.settings.visits }}"
+                visits: {{ request.user.settings.visits }},
+                show_tutorial: {{ request.user.settings.show_tutorial|yesno:"true,false" }}
             }
         },
         chat: {

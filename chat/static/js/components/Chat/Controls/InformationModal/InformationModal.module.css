@@ -1,7 +1,7 @@
 @import '/static/css/react-modal.css';
 
 .container {
-    color: white;
+    color: #F7F7F7;
 
     position: fixed;
     top: 35px;
@@ -60,6 +60,10 @@
     padding: 0 10px;
 }
 
+.content > h3 {
+    text-align: center;
+}
+
 .content > p:last-of-type {
     text-align: center;
 }
@@ -80,5 +84,5 @@
     margin-right: auto;
     margin-left: auto;
     padding-bottom: 15px;
-    border-bottom: dotted 1px white;
+    border-bottom: dotted 1px #F7F7F7;
 }

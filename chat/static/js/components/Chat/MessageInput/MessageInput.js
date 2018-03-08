@@ -9,32 +9,13 @@ export default class MessageInput extends React.Component {
         this.sendMessage = this.sendMessage.bind(this);
     }
 
-    componentDidMount() {
-    }
-
-    componentWillDismount() {
-    }
-
     handleInputChange(event) {
         this.setState({value: event.target.value})
     }
 
     sendMessage(event) {
         event.preventDefault();
-
-        $.post({
-            url: this.props.url,
-            datatype: 'json',
-            headers: {
-                'X-CSRFToken': this.props.csrfToken
-            },
-            data: {
-                value: this.state.value,
-                sent_by: this.props.userId,
-                sent_in: this.props.chatId
-            }
-        });
-
+        this.props.onSend(this.state.value);
         this.setState({value: ''});
     }
 

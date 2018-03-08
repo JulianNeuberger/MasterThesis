@@ -8,21 +8,26 @@ export default class Button extends React.Component {
         this.state = {
             running: false,
         };
+        this.sizeMap = {
+            'small': styles.small,
+            'medium': styles.medium,
+            'big': styles.big
+        };
         this.styleMap = {
             'light': styles.light,
-            'normal': styles.normal
+            'normal': styles.normal,
+            'secondary': styles.secondary,
+            'subtle': styles.subtle
         }
     }
 
     render() {
-        let buttonStyle = this.styleMap[this.props.style];
-        if (typeof(buttonStyle) === 'undefined') {
-            buttonStyle = this.styleMap.normal;
-        }
-        let hoveringStyle = this.props.hovering ? styles.hovering : '';
+        let style = this.getFromMap(this.styleMap, this.props.style, 'normal');
+        let hovering = this.props.hovering ? styles.hovering : '';
+        let size = this.getFromMap(this.sizeMap, this.props.size, 'medium');
         return (
             <span onClick={this.props.onClick}
-                  className={[styles.container, buttonStyle, hoveringStyle].join(' ')}
+                  className={[styles.container, style, hovering, size].join(' ')}
                   data-tip={"trigger " + this.props.actionName}>
                 {this.renderIcon()}
                 {this.renderText()}
@@ -44,5 +49,13 @@ export default class Button extends React.Component {
         } else {
             return (null)
         }
+    }
+
+    getFromMap(map, key, defaultValue) {
+        let value = map[key];
+        if (typeof(value) === 'undefined') {
+            value = defaultValue;
+        }
+        return value;
     }
 }

@@ -20,5 +20,6 @@ class Message(models.Model):
 
 class Settings(models.Model):
     visits = models.IntegerField(default=0)
+    show_tutorial = models.BooleanField(default=True)
 
     for_user = models.OneToOneField(User, on_delete=models.CASCADE)

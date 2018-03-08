@@ -11,6 +11,7 @@ router.register(r'user-detail', views.UserViewSet)
 urlpatterns = [
     url(r'^$', views.index),
     url(r'^single/(?P<chat_id>[0-9]+)/$', views.single_chat, name='single'),
+    url(r'^settings/tutorial$', views.show_tutorial),
     url(r'^start/bot', views.start_bot_chat, name='start_bot_chat'),
     url(r'^api/', include(router.urls)),
 ]

@@ -1,17 +1,41 @@
 .message {
-    padding: 10px 15px;
-    border-radius: 5px;
+    padding: 25px 10px;
+    border-radius: 7px;
     border: none;
-    color: white;
+    color: #F7F7F7;
     display: inline-block;
     max-width: 400px;
+    min-width: 100px;
+    word-wrap: break-word;
+    position: relative;
+
+    transition: min-width, padding;
+    transition-duration: .33s;
+    transition-timing-function: ease-in-out;
+}
+
+.message[data-overlay-open="true"] {
+    min-width: 300px;
+    padding: 30px 10px;
+
+    transition: min-width, padding;
+    transition-duration: .33s;
+    transition-timing-function: ease-in-out;
 }
 
 .entry {
-    margin: 5px 25px;
+    margin: 15px 0;
     animation-duration: .5s;
     animation-timing-function: ease-in-out;
     position: relative;
+}
+
+.user-icon {
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    position: absolute;
+    bottom: 0;
 }
 
 .own {
@@ -21,26 +45,16 @@
     animation-name: flyInLeft;
 }
 
-.own:after {
-    content: '';
-
-    display: block;
-    position: absolute;
-    right: -20px;
-    bottom: 0;
-
-    width: 0;
-    height: 0;
-
-    border-width: 5px 10px;
-    border-style: solid;
-    border-color: transparent transparent #0095d4 #0095d4;
-    border-radius: 0;
-}
-
 .own > .message {
     background-color: #0095d4;
     border-bottom-right-radius: 0;
+    margin-right: 40px;
+}
+
+.own > .user-icon {
+    right: 0;
+    background-color: #0095d4;
+    border: solid 2px #0095d4
 }
 
 .other {
@@ -51,26 +65,15 @@
 }
 
 .other > .message {
-    background-color: #d0d0d0;
-    color: #333333;
+    background-color: #878787;
     border-bottom-left-radius: 0;
+    margin-left: 40px;
 }
 
-.other:after {
-    content: '';
-
-    display: block;
-    position: absolute;
-    left: -20px;
-    bottom: 0;
-
-    width: 0;
-    height: 0;
-
-    border-width: 5px 10px;
-    border-style: solid;
-    border-color: transparent #d0d0d0 #d0d0d0 transparent;
-    border-radius: 0;
+.other > .user-icon {
+    left: 0;
+    background-color: #878787;
+    border: solid 2px #878787
 }
 
 .rich-container {
@@ -80,9 +83,9 @@
 
 .rich-container.video-container {
     position: relative;
-	padding-bottom: 56.25%; /* 16:9 */
-	padding-top: 25px;
-	height: 0;
+    padding-bottom: 56.25%; /* 16:9 */
+    padding-top: 25px;
+    height: 0;
 }
 
 .rich-container > * {
@@ -95,10 +98,70 @@
 
 .rich-container > iframe {
     position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.controls {
+    position: absolute;
+    right: 9px;
+    top: -16px;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    padding: 25px 10px;
+
+    font-size: 12px;
+
+    background-color: #324D4CB3;
+    border-radius: 7px 7px 7px 0;
+}
+
+.overlay > div {
+    height: 100%;
+}
+
+.message[data-overlay-open="false"] > .overlay {
+    opacity: 0;
+    display: none;
+
+    transition: opacity .25s ease-in-out, display 0s ease-in .25s;
+}
+
+.message[data-overlay-open="true"] > .overlay {
+    opacity: 1;
+    display: inline-block;
+
+    transition: opacity .25s ease-in-out, display 0s ease-in .25s;
+}
+
+.overlay > *:before {
+    content: '';
+    display: inline-block;
+    vertical-align: middle;
+    height: 100%;
+}
+
+.overlay > [data-open="true"] {
+    display: block;
+    opacity: 1;
+
+    transition: opacity .25s ease-in-out, display 0s .25s;
+}
+
+.overlay > [data-open="false"] {
+    display: none;
+    opacity: 0;
+
+    transition: opacity .25s ease-in-out, display 0s .25s;
 }
 
 /********************************

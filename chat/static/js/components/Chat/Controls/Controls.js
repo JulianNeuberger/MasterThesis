@@ -7,50 +7,31 @@ export default class Controls extends React.Component {
     constructor(props) {
         super();
         this.props = props;
-        this.state = {
-            helpOpen: true
-        };
-        this.triggerHelpModal = this.triggerHelpModal.bind(this);
-        this.triggerTraining = this.triggerTraining.bind(this);
-        this.triggerSave = this.triggerSave.bind(this);
-    }
-
-    triggerTraining() {
-
-    }
-
-    triggerSave() {
-
-    }
-
-    triggerHelpModal() {
-        this.setState({
-            helpOpen: true
-        });
-        console.log('called handler')
     }
 
     render() {
         return (
             <span>
                 <div className={styles.container}>
-                    <Button style='normal' hovering={true}
+                    <Button style='normal' hovering={true} size={'medium'}
                             iconSrc={'/static/img/brain-gear.svg'}
-                            onClick={this.triggerTraining}>
+                            onClick={this.props.triggerTraining}>
                         train
                     </Button>
-                    <Button style='normal' hovering={true}
+                    <Button style='normal' hovering={true} size={'medium'}
                             iconSrc={'/static/img/floppy-solid.svg'}
-                            onClick={this.triggerSave}>
+                            onClick={this.props.triggerSave}>
                         save
                     </Button>
-                    <Button style='normal' hovering={true}
+                    <Button style='normal' hovering={true} size={'medium'}
                             iconSrc={'/static/img/question.svg'}
-                            onClick={this.triggerHelpModal}>
+                            onClick={this.props.openHelp}>
                         help
                     </Button>
                 </div>
-                <InformationModal open={this.state.helpOpen}/>
+                <InformationModal open={this.props.helpOpen}
+                                  onClose={this.props.onHelpClose}
+                                  onDisable={this.props.onHelpDisable}/>
             </span>
         );
     }

@@ -7,7 +7,7 @@
 }
 
 .light {
-    background-color: white;
+    background-color: #F7F7F7;
     color: #333333;
 }
 
@@ -17,34 +17,48 @@
 
 .normal {
     background-color: #0095d4;
-    color: white;
+    color: #F7F7F7;
 }
 
 .normal:hover {
     background-color: #0083c1;
 }
 
+.subtle {
+    background-color: transparent;
+    color: #f7f7f7;
+}
+
+.secondary {
+    background-color: #878787;
+    color: #F7F7F7;
+}
+
+.secondary:hover {
+    background-color: #2C373C;
+    color: #F7F7F7;
+}
+
 .container {
     text-align: center;
-    border-radius: calc(49px / 2);
     margin: 10px;
 
-    padding: 12px;
-
-    box-sizing: border-box;
+    box-sizing: content-box;
 
     display: inline-block;
 
     cursor: pointer;
 
     white-space: nowrap;
+}
 
+.container .icon {
     transform: scale(1.0);
     transition: all 200ms ease-in-out;
 }
 
 .container:hover .icon {
-    transform: scale(1.05);
+    transform: scale(1.15);
     transition: all 200ms ease-in-out;
 }
 
@@ -52,16 +66,60 @@
     vertical-align: middle;
 }
 
-.text + .icon, .icon + .text {
-    margin-left: 10px;
+.icon {
+    color: #F7F7F7;
+    fill: #F7F7F7;
+
+    float: left;
 }
 
-.icon {
-    color: white;
-    fill: white;
+.small {
+    border-radius: calc(7px + (15px / 2));
+    height: 15px;
+    padding: 7px;
+    margin: 2px;
+}
 
+.small .icon {
+    height: 15px;
+    width: 15px;
+}
+
+.small .icon + .text {
+    margin-left: 10px;
+    margin-right: 15px;
+}
+
+.medium {
+    border-radius: calc(12px + (25px / 2));
+    height: 25px;
+    padding: 12px;
+    margin: 10px;
+}
+
+.medium .icon {
     height: 25px;
     width: 25px;
+}
 
-    vertical-align: middle;
+.medium .icon + .text {
+    margin-left: 10px;
+    margin-right: 25px;
+}
+
+.big {
+    border-radius: calc(17px + (35px / 2));
+    height: 35px;
+    padding: 17px;
+    margin: 15px;
+}
+
+.big .icon {
+    height: 35px;
+    width: 35px;
+}
+
+.big .icon + .text {
+    margin-left: 10px;
+    margin-right: 35px;
 }
