@@ -22,26 +22,33 @@ export default class InformationModal extends React.Component {
                    onRequestClose={this.props.onClose}>
                 <div className={styles.content}>
                     <img src={'/static/img/question.svg'} className={styles.icon}/>
-                    <h3> Welcome !</h3>
+                    <h3> Welcome to [BOTNAME]!</h3>
                     <p>
-                        This chat bot is a proof of concept for my master's thesis. It is designed to answer your
-                        questions regarding your favourite football <i>(soccer)</i> players. For example it can tell
-                        you how old Thomas Müller is, or show you a video of Ronaldo, Mbappe and others.
+                        This Bot can <b>answer questions</b> (age, height, number of goals), <b>show you videos</b> and
+                        <b>pictures</b> for these soccer players: Müller, Lewandowski, Messi, Suarez, Neymar, Mbappé,
+                        Ronaldo, Ibrahimović, Pogba, Dybala and Higuaín.
                     </p>
                     <p>
-                        This bot employs a <b>machine learning</b> technique called reinforcment learning,
-                        which allows it to learn when to do which action <i>(e.g. what it should say)</i>!
+                        This information is displayed, since [BOTNAME] employs a reinforcement learning technique to
+                        learn how to answer your questions. This includes the question: <i>"What can you do?"</i>, which
+                        means, it may not have learned how to answer this question.
                     </p>
                     <p>
-                        To do this, it needs your help! BOTNAME HERE can only learn through experience, so
-                        it will test random responses to your questions. Rate these answers to improve the bot!
+                        You can train [BOTNAME] by talking to it and rating its responses at the little&nbsp;
+                        <img src={"/static/img/star-full.svg"} style={{height: '1em'}}/>
+                        &nbsp;button!
                     </p>
                     <p>
-                        Depending on when you chose to visit, it may feel very dumb and random, but don't be afraid,
-                        it will constantly learn and improve. Just talk a little to it and rate its responses!
+                        Here is a more detailed overview of what you can do:
+                        <ul>
+                            <li>ask for a list of known players</li>
+                            <li>ask for videos/pictures of a player</li>
+                            <li>ask for information (age, height, #goals) of a certain player</li>
+                            <li>small talk like "hi", "how are you", "bye"...</li>
+                        </ul>
                     </p>
                     <p>
-                        Thank you for your help in training BOTNAME HERE!
+                        How about starting with a <i>"Hello"</i> to [BOTNAME]?
                     </p>
                     <p>
                         <Button onClick={this.props.onClose} style={"light"} size={"medium"} hovering={true}>

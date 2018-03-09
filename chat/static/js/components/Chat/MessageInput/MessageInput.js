@@ -23,7 +23,8 @@ export default class MessageInput extends React.Component {
         return (
             <div className={styles.container}>
                 <form onSubmit={this.sendMessage}>
-                    <input type="text"
+                    <input type={"text"}
+                           placeholder={"Start typing..."}
                            className={styles.input}
                            value={this.state.value}
                            onChange={this.handleInputChange}/>

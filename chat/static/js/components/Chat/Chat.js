@@ -91,7 +91,6 @@ export default class Chat extends React.Component {
     }
 
     openHelp() {
-        console.log('opening help');
         this.setState({
             helpOpen: true
         });
