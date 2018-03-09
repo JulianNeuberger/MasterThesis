@@ -36,6 +36,7 @@ export default class Chat extends React.Component {
 
     componentDidMount() {
         this.updateState();
+        this.openHelp();
         this.updateInterval = setInterval(this.updateState, this.pollInterval);
     }
 
@@ -90,6 +91,7 @@ export default class Chat extends React.Component {
     }
 
     openHelp() {
+        console.log('opening help');
         this.setState({
             helpOpen: true
         });

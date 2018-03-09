@@ -7,10 +7,14 @@ export default class MessageRating extends React.Component {
         super(props);
         this.props = props;
         this.ratingChanged = this.ratingChanged.bind(this);
+        this.state = {
+            value: this.props.initial
+        }
     }
 
-    ratingChanged() {
-        this.props.onRate(this.props.for.id, this.props.for.reward);
+    ratingChanged(value) {
+        this.props.onRate(this.props.for, value);
+        this.setState({value: value});
     }
 
     render() {
@@ -20,11 +24,11 @@ export default class MessageRating extends React.Component {
                     <span className={styles.name}>
                         {this.props.name}
                     </span>
-                    <Rating initialRating={parseFloat(this.props.for.reward)}
+                    <Rating initialRating={this.state.value}
                             start={0}
-                            stop={1}
+                            stop={10}
                             fractions={2}
-                            step={.2}
+                            step={2}
                             onChange={this.ratingChanged}
                             emptySymbol={styles["star-empty"]}
                             fullSymbol={styles["star-full"]}/>

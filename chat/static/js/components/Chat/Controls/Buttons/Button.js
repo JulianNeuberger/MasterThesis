@@ -18,7 +18,15 @@ export default class Button extends React.Component {
             'normal': styles.normal,
             'secondary': styles.secondary,
             'subtle': styles.subtle
-        }
+        };
+
+        this.test = this.test.bind(this);
+        console.log(this.props.children + ':' + this.props.onClick);
+    }
+
+    test() {
+        console.log('clicked');
+        this.props.onClick();
     }
 
     render() {

@@ -44,8 +44,10 @@ export default class InformationModal extends React.Component {
                         Thank you for your help in training BOTNAME HERE!
                     </p>
                     <p>
-                        <Button onClick={this.props.onClose} style={"light"} hovering={true}>Got it!</Button>
-                        <Button onClick={this.props.onDisable} style={"subtle"} hovering={false}>
+                        <Button onClick={this.props.onClose} style={"light"} size={"medium"} hovering={true}>
+                            Got it!
+                        </Button>
+                        <Button onClick={this.props.onDisable} style={"subtle"} size={"medium"} hovering={false}>
                             Don't show again
                         </Button>
                     </p>

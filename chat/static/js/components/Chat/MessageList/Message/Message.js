@@ -16,7 +16,8 @@ export default class Message extends React.Component {
     openOverlay(overlay) {
         this.setState({
             openOverlay: this.state.openOverlay === overlay ? undefined : overlay
-        })
+        });
+
     }
 
     render() {
@@ -25,18 +26,24 @@ export default class Message extends React.Component {
         if (isUserMessage) {
             className = styles.own;
         }
-        let ratingComponent = isUserMessage ? (null) : (<MessageRating for={this.props.message}
+        let ratingComponent = isUserMessage ? (null) : (<MessageRating for={this.props.message.id}
+                                                                       initial={parseFloat(this.props.message.reward)}
                                                                        name={'interaction quality'}
                                                                        onRate={this.props.onRate}/>);
 
+        const closeIconSrc = '/static/img/close.svg';
+        const informationOpen = typeof(this.state.openOverlay) !== 'undefined'
+            && this.state.openOverlay === this.informationText;
+        const ratingOpen = typeof(this.state.openOverlay) !== 'undefined'
+            && this.state.openOverlay === this.ratingComponent;
         let messageControls = isUserMessage ? (null) : (
             <div className={styles.controls}>
-                <Button iconSrc={'/static/img/question.svg'}
+                <Button iconSrc={informationOpen ? closeIconSrc : '/static/img/question.svg'}
                         style={'secondary'} size={'small'}
                         onClick={function () {
                             this.openOverlay(this.informationText)
                         }.bind(this)}/>
-                <Button iconSrc={'/static/img/star-full.svg'}
+                <Button iconSrc={ratingOpen ? closeIconSrc : '/static/img/star-full.svg'}
                         style={'secondary'} size={'small'}
                         onClick={function () {
                             this.openOverlay(this.ratingComponent)

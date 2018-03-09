@@ -26,6 +26,8 @@
     top: 0;
     left: 0;
 
+    z-index: 3;
+
     border: solid 1px #0095d4;
     border-radius: 25px;
 
