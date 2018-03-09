@@ -8,8 +8,6 @@
     bottom: 35px;
     right: 35px;
     left: 35px;
-    z-index: 1;
-
     pointer-events: none;
 
     /*transition: opacity .25s ease-in-out, top .25s ease-in-out, transform .25s ease-in-out, visibility 0s ease-in-out .25s;*/
@@ -33,6 +31,8 @@
     pointer-events: all;
 
     transition: opacity .25s ease-in-out, visibility 0s ease-in-out .25s;
+
+    z-index: 4;
 }
 
 .overlay.open {
