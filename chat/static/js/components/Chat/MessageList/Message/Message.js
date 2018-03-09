@@ -74,7 +74,7 @@ export default class Message extends React.Component {
                     </div>
                 </span>
                 <img className={styles["user-icon"]}
-                     src={isUserMessage ? '/static/img/user.svg' : '/static/img/bot.svg'}/>
+                     src={isUserMessage ? '/static/img/user-inv.svg' : '/static/img/bot.png'}/>
             </li>
         )
     }

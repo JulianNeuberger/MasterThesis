@@ -18,8 +18,6 @@ export default class Chat extends React.Component {
         this.updateState = this.updateState.bind(this);
         this.openHelp = this.openHelp.bind(this);
         this.closeHelp = this.closeHelp.bind(this);
-        this.triggerTraining = this.triggerTraining.bind(this);
-        this.triggerSave = this.triggerSave.bind(this);
         this.onMessageRating = this.onMessageRating.bind(this);
         this.disableHelp = this.disableHelp.bind(this);
 
@@ -80,14 +78,6 @@ export default class Chat extends React.Component {
                 sent_in: this.props.chatId
             }
         });
-    }
-
-    triggerTraining() {
-
-    }
-
-    triggerSave() {
-
     }
 
     openHelp() {

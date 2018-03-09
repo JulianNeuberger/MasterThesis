@@ -21,7 +21,7 @@ export default class InformationModal extends React.Component {
                    ariaHideApp={false}
                    onRequestClose={this.props.onClose}>
                 <div className={styles.content}>
-                    <img src={'/static/img/question.svg'} className={styles.icon}/>
+                    <img src={'/static/img/bot.png'} className={styles.icon}/>
                     <h3> Welcome to [BOTNAME]!</h3>
                     <p>
                         This Bot can <b>answer questions</b> (age, height, number of goals), <b>show you videos</b> and

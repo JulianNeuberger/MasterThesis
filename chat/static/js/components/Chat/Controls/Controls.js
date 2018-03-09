@@ -13,16 +13,6 @@ export default class Controls extends React.Component {
         return (
             <span>
                 <div className={styles.container}>
-                    {/*<Button style='normal' hovering={true} size={'medium'}*/}
-                            {/*iconSrc={'/static/img/brain-gear.svg'}*/}
-                            {/*onClick={this.props.triggerTraining}>*/}
-                        {/*train*/}
-                    {/*</Button>*/}
-                    {/*<Button style='normal' hovering={true} size={'medium'}*/}
-                            {/*iconSrc={'/static/img/floppy-solid.svg'}*/}
-                            {/*onClick={this.props.triggerSave}>*/}
-                        {/*save*/}
-                    {/*</Button>*/}
                     <Button style='normal' hovering={true} size={'medium'}
                             iconSrc={'/static/img/question.svg'}
                             onClick={this.props.triggerHelp}>

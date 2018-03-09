@@ -120,6 +120,14 @@ class MessageViewSet(ChatMessageList, viewsets.ModelViewSet):
         )
         return instance
 
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+        max_messages = 20
+        num_messages = queryset.count()
+        if num_messages > max_messages:
+            queryset = queryset[num_messages - max_messages: num_messages]
+        return queryset
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
