@@ -21,11 +21,9 @@ export default class Button extends React.Component {
         };
 
         this.test = this.test.bind(this);
-        console.log(this.props.children + ':' + this.props.onClick);
     }
 
     test() {
-        console.log('clicked');
         this.props.onClick();
     }
 

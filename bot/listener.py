@@ -12,7 +12,7 @@ from content.responses import ResponseFactory
 from data.context import Context
 from data.state import State
 from data.turn import Turn
-from turns.models import Sentence, IntentTemplate, Intent
+from turns.models import Sentence, IntentTemplate, Intent, Dialogue
 from turns.util import update_user_profile_for_single_dialogue
 
 logger = logging.getLogger('bot')
@@ -57,7 +57,7 @@ class BotListener(metaclass=Singleton):
         context = Context.get_single_context(turns, CONTEXT_LENGTH)
         state = State(sentence)
         action_name = self.model.query({'state_input': numpy.array([state.as_vector()]),
-                                         'context_input': numpy.array([context.as_matrix()])})
+                                        'context_input': numpy.array([context.as_matrix()])})
         human_user = User.objects.get(username=sentence.said_by)
         chat = Chat.objects.get(initiator=human_user, receiver=self._bot_user)
 
@@ -86,13 +86,20 @@ class BotListener(metaclass=Singleton):
     def _init_factories(self):
         logger.info('Initializing factories...')
         start = time.time()
-        for name in Sentence.objects.exclude(said_by=self._bot_user.username).values_list('said_by', flat=True).distinct():
-            response_factory = ResponseFactory()
-            for sentence in Sentence.objects.filter(said_by=name).order_by('said_on'):
-                if sentence.intent is not None:
-                    response_factory.update(sentence.intent)
-            self._response_factories[name] = response_factory
+        for name in Dialogue.objects.values_list('with_user', flat=True).distinct():
+            self.update_factories(name)
         logger.info('Done initializing {} factories, took {:.4}s!'.format(
             len(self._response_factories.keys()),
             time.time() - start,
         ))
+
+    def update_factories(self, name):
+        if not self._response_factories.keys().__contains__(name):
+            self._add_single_factory(name)
+
+    def _add_single_factory(self, name):
+        response_factory = ResponseFactory()
+        for sentence in Sentence.objects.filter(said_by=name).order_by('said_on'):
+            if sentence.intent is not None:
+                response_factory.update(sentence.intent)
+        self._response_factories[name] = response_factory

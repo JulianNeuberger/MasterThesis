@@ -54,6 +54,7 @@
     overflow-y: auto;
 
     pointer-events: all;
+    outline: none;
 }
 
 .content > p, .content > h3 {

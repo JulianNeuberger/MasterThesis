@@ -38,6 +38,8 @@
     transition: outline, box-shadow, width, padding-right;
     transition-timing-function: ease-in-out;
     transition-duration: .25s;
+
+    outline: none;
 }
 
 .container:hover input, .input:focus {
@@ -80,6 +82,8 @@
     position: absolute;
     top: 0;
     right: 0;
+
+    z-index: 3;
 
     transition: all .15s ease-in-out;
 }
