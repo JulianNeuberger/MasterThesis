@@ -56,7 +56,7 @@ export default class Chat extends React.Component {
                 if (typeof(data) !== 'undefined' && data.length > 0) {
                     let newData = this.state.messages.concat(data);
                     let messageCount = newData.length;
-                    newData = messageCount > 150 ? newData.slice(messageCount - 150, messageCount) : newData;
+                    newData = messageCount > 25 ? newData.slice(messageCount - 25, messageCount) : newData;
                     this.setState({
                         messages: newData
                     })

@@ -61,6 +61,8 @@ class BotListener(metaclass=Singleton):
         human_user = User.objects.get(username=sentence.said_by)
         chat = Chat.objects.get(initiator=human_user, receiver=self._bot_user)
 
+        if not self._response_factories.keys().__contains__(human_user.username):
+            self.update_factories(human_user.username)
         sentence_value = self._response_factories[human_user.username].create_response(action_name)
         message = Message.objects.create(value=sentence_value, sent_by=self._bot_user, sent_in=chat)
         dialogue = sentence.said_in
