@@ -38,15 +38,15 @@ export default class InformationModal extends React.Component {
                         <img src={"/static/img/star-full.svg"} style={{height: '1em'}}/>
                         &nbsp;button!
                     </p>
-                    <p>
-                        Here is a more detailed overview of what you can do:
+                    <div>
+                        <p>Here is a more detailed overview of what you can do:</p>
                         <ul>
                             <li>ask for a list of known players</li>
                             <li>ask for videos/pictures of a player</li>
                             <li>ask for information (age, height, #goals) of a certain player</li>
                             <li>small talk like "hi", "how are you", "bye"...</li>
                         </ul>
-                    </p>
+                    </div>
                     <p>
                         How about starting with a <i>"Hello"</i> to [BOTNAME]?
                     </p>

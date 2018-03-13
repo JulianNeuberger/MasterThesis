@@ -2,6 +2,7 @@ import React from 'react'
 import styles from './Message.module.css'
 import MessageRating from "./MessageRating/MessageRating";
 import Button from "../../Controls/Buttons/Button";
+import LazyVideo from "../../../LazyVideo/LazyVideo";
 
 export default class Message extends React.Component {
     constructor(props) {
@@ -82,11 +83,8 @@ export default class Message extends React.Component {
     renderRichContent() {
         let match = this.VIDEO_REGEX.exec(this.props.message.value);
         if (match) {
-            const url = 'https://www.youtube.com/embed/' + match[1];
             return (
-                <div className={[styles["rich-container"], styles["video-container"]].join(' ')}>
-                    <iframe src={url}/>
-                </div>
+                <LazyVideo videoId={match[1]}/>
             );
         }
         match = this.IMAGE_REGEX.exec(this.props.message.value);

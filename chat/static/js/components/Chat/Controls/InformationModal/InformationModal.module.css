@@ -57,11 +57,11 @@
     outline: none;
 }
 
-.content > p, .content > h3 {
+.content p, .content h3 {
     padding: 0 10px;
 }
 
-.content > h3 {
+.content h3 {
     text-align: center;
 }
 

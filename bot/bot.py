@@ -329,7 +329,7 @@ class QueryableModelInterface(metaclass=Singleton):
 
 
 class DeepMindModel(QueryableModelInterface):
-    def __init__(self, bot_user, load_dir='latest'):
+    def __init__(self, bot_user, load_dir=None):
         super().__init__(model_base_name='deep_mind_model', load_dir=load_dir)
         self._bot_user = bot_user
 
