@@ -58,7 +58,7 @@ class ChatMessageListener:
 
     @staticmethod
     def _update_sentence_for_message(sentence: Sentence, event: ChatMessageEvent):
-        sentence.reward = event.reward
+        sentence.reward = event.reward / 10
         sentence.save()
         return sentence
 
