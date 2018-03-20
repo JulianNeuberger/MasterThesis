@@ -11,7 +11,7 @@ export default class Message extends React.Component {
         this.state = {};
 
         this.VIDEO_REGEX = /youtube.com\/(?:embed\/|watch\?v=)([a-zA-Z0-9_-]{11})/;
-        this.IMAGE_REGEX = /([^\s]*\.(?:jpg|jpeg|png|gif))/;
+        this.IMAGE_REGEX = /http(?:s?):\/\/([^\s]*\.(?:jpg|jpeg|png|gif))/;
     }
 
     openOverlay(overlay) {
