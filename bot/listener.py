@@ -5,7 +5,7 @@ import numpy
 from django.contrib.auth.models import User
 
 from bot.bot import DeepMindModel
-from bot.config import CONTEXT_LENGTH
+from bot.config import CONTEXT_LENGTH, UNKNOWN_INTENT, DIDNT_UNDERSTAND_INTENT_ACTION
 from chat.events import Singleton
 from chat.models import Message, Chat
 from content.responses import ResponseFactory
@@ -56,8 +56,14 @@ class BotListener(metaclass=Singleton):
         turns = Turn.sentences_to_turns(sentences, self._bot_user)
         context = Context.get_single_context(turns, CONTEXT_LENGTH)
         state = State(sentence)
-        action_name = self.model.query({'state_input': numpy.array([state.as_vector()]),
-                                        'context_input': numpy.array([context.as_matrix()])})
+
+        # mapping unknown_intent -> "Sorry didn't understand that" is hard coded, to avoid confusion
+        if sentence.intent.template.name != UNKNOWN_INTENT:
+            action_name = self.model.query({'state_input': numpy.array([state.as_vector()]),
+                                            'context_input': numpy.array([context.as_matrix()])})
+        else:
+            action_name = DIDNT_UNDERSTAND_INTENT_ACTION
+
         human_user = User.objects.get(username=sentence.said_by)
         chat = Chat.objects.get(initiator=human_user, receiver=self._bot_user)
 
