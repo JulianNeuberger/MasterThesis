@@ -175,7 +175,7 @@ ACTION_SENTENCES = {
     'response.player.information.shoe': [Template('{${player_name} }wears the Adidas X 17.1'),
                                          Template('{${player_name} }uses the Adidas X 17.1')],
 
-    'response.player.news': [Template('Have you seen this{ ${content_type}} of{ ${player_name}}?{${content}}'),
+    'response.player.news': [Template('Have you seen this{ ${content_type}} of{ ${player_name}}? {${content}}'),
                              Template('Do you know this{ ${content_type}} of{ ${player_name}} already? {${content}}')],
 
     'userprofile.query.active': [Template('Are you an active soccer player?'),
