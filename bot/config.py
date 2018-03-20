@@ -46,8 +46,9 @@ INTENTS = [
 ]
 
 NUM_INTENTS = len(INTENTS)
+DIDNT_UNDERSTAND_INTENT_ACTION = 'common.what'
 ACTIONS = [
-    'common.what',
+    DIDNT_UNDERSTAND_INTENT_ACTION,
     'common.bad',
     'common.bye',
     'common.good',
@@ -62,7 +63,7 @@ ACTIONS = [
     'commons.more',
     'commons.nice_to_meet_you',
     'commons.sorry',
-    'common.you_too',  # maybe comment out this one for demoing?
+    'common.you_too',
     'offer.player.news',
     'reaction.bad_you_didnt_like',
     'reaction.glad_you_liked_it',
@@ -142,6 +143,8 @@ ACTION_SENTENCES = {
     'commons.sorry': [Template('Sorry!'),
                       Template('Excuse me..'),
                       Template('Pardon me.')],
+
+    'common.you_too': [Template('You too!')],
 
     'offer.player.news': [Template('I can show you news about{ ${player_name}}!'),
                           Template('Do you want to see news about{ ${player_name}}?'),
