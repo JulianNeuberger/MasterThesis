@@ -116,14 +116,14 @@ class Sentence(models.Model):
 
     used_in_training = models.BooleanField(default=False)
 
-    said_on = models.DateTimeField(auto_now_add=True)
+    said_on = models.DateTimeField(auto_now_add=True, )
     said_by = models.CharField(max_length=64, null=False)
     said_in = models.ForeignKey(Dialogue, null=False, on_delete=models.CASCADE)
 
     user_profile = models.ForeignKey(UserProfile, on_delete=models.DO_NOTHING, null=True)
 
     def __str__(self):
-        return self.value
+        return '"{}"(id={})'.format(self.value, self.id)
 
     @staticmethod
     def sample_sentence(said_by_name: str):

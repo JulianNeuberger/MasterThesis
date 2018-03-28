@@ -15,7 +15,7 @@ class IntentError(Exception):
 
 class NoStateIntentError(IntentError):
     def __str__(self) -> str:
-        return 'Sentence "{}" is a state, but has an intent, that is not usable in a state: {}'.format(
+        return 'Sentence {} is a state, but has an intent, that is not usable in a state: {}'.format(
             self.sentence,
             self.intent
         )
@@ -23,7 +23,7 @@ class NoStateIntentError(IntentError):
 
 class NoActionIntentError(IntentError):
     def __str__(self) -> str:
-        return 'Sentence "{}" is an action, but has an intent, that is not usable in an action: {}'.format(
+        return 'Sentence {} is an action, but has an intent, that is not usable in an action: {}'.format(
             self.sentence,
             self.intent.template.name
         )
