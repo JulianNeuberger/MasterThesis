@@ -4,7 +4,7 @@ import time
 import numpy
 from django.contrib.auth.models import User
 
-from bot.bot import DeepMindModel
+from bot.bot import DeepMindBot
 from bot.config import CONTEXT_LENGTH, UNKNOWN_INTENT, DIDNT_UNDERSTAND_INTENT_ACTION
 from chat.events import Singleton
 from chat.models import Message, Chat
@@ -21,7 +21,7 @@ logger = logging.getLogger('bot')
 class BotListener(metaclass=Singleton):
     def __init__(self, bot_user):
         self._bot_user = bot_user
-        self.model = DeepMindModel(bot_user=self._bot_user)
+        self.model = DeepMindBot(bot_user=self._bot_user)
         self._response_factories = {}
         self._init_factories()
 

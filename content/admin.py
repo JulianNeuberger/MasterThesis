@@ -4,5 +4,5 @@ from content.models import Content
 
 
 @admin.register(Content)
-class TurnAdmin(admin.ModelAdmin):
+class CcntentAdmin(admin.ModelAdmin):
     pass

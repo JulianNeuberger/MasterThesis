@@ -18,20 +18,72 @@ from data.action import Action
 from data.context import Context
 from data.exceptions import IntentError
 from data.state import State
+from data.transition import Transition
 from data.turn import Turn
-from events.util import Singleton
 from turns.models import Sentence
-from turns.transition import Transition
 
 logger = logging.getLogger("bot")
 
 
-class QueryableModelInterface(metaclass=Singleton):
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super().__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class AbstractBot(metaclass=Singleton):
     """
     A Singleton, that holds a keras model and can be trained, be queried and predict actions.
     The core of the chat bot.
     Extend this class to use your models and logic.
     """
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # ABSTRACT METHODS                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    def _init_model(self, *args, **kwargs):
+        """
+        Initializes the underlying keras model used by this QueryableModel.
+        Implementation should set the self._model member and is mandatory.
+        Can be called multiple times, to change model implementation
+
+        This method is not responsible for:
+        - loading model stats (episodes trained, ...)
+        - loading model weights
+        """
+        raise NotImplementedError
+
+    def _sample_batch(self, episode_number) -> Optional[Tuple[int, Dict, Dict]]:
+        """
+        Method for sampling one batch to use in training.
+        Can return None, if training not possible.
+        Method is responsible for ordering/shuffling samples.
+
+        Implement this method!
+
+        :parameter episode_number: Episode to sample a batch from, 0 is the first episode of data,
+        each episode consists of bot.config.EPISODE_SIZE sentences. pass negative integers to indicate the
+        last (-1), second last (-2) and so on episodes
+
+        :return: a tuple of batch size and dicts of input and output batch
+        """
+        raise NotImplementedError()
+
+    def _can_sample_batch(self, episode_number) -> bool:
+        """"""
+        raise NotImplementedError()
+
+    def _prediction_to_action_name(self, prediction: numpy.ndarray) -> str:
+        """
+        Implement this to process a raw model prediction into an action name
+
+        :param prediction: a 1D numpy array resulting from querying the model (2nd dimension squeezed)
+
+        :returns: a action name string
+        """
+        raise NotImplementedError()
 
     def __init__(self, model_base_name: str, load_dir='latest'):
         """
@@ -73,18 +125,6 @@ class QueryableModelInterface(metaclass=Singleton):
             else:
                 logger.info('No weights file for model "{}" found, '
                             'this can be due to the first time running this model...'.format(self._model.name))
-
-    def _init_model(self, *args, **kwargs):
-        """
-        Initializes the underlying keras model used by this QueryableModel.
-        Implementation should set the self._model member and is mandatory.
-        Can be called multiple times, to change model implementation
-
-        This method is not responsible for:
-        - loading model stats (episodes trained, ...)
-        - loading model weights
-        """
-        raise NotImplementedError
 
     def _init_callbacks(self):
         """
@@ -131,7 +171,7 @@ class QueryableModelInterface(metaclass=Singleton):
         :return: names of the chosen action, will always be a list, even only with one element!
         """
         with self._graph.as_default():
-            return self._prediction_to_action(self._model.predict(raw_input))
+            return self._prediction_to_action_name(self._model.predict(raw_input))
 
     def pre_train(self, validate=True):
         logger.info('Starting to train on available episodes.')
@@ -195,7 +235,7 @@ class QueryableModelInterface(metaclass=Singleton):
     def list_available_models():
         models = []
         for name in os.listdir(WEIGHTS_DIR):
-            stats = QueryableModelInterface._load_stats_by_path(os.path.join(WEIGHTS_DIR, name, 'stats.pickle'))
+            stats = AbstractBot._load_stats_by_path(os.path.join(WEIGHTS_DIR, name, 'stats.pickle'))
             model = (name, stats)
             models.append(model)
         return models
@@ -212,36 +252,6 @@ class QueryableModelInterface(metaclass=Singleton):
         logger.debug('Episode ended, notifying callbacks {}'.format(self._callbacks))
         for callback in self._callbacks:
             callback.on_epoch_end(episode_number, logs)
-
-    def _sample_batch(self, episode_number) -> Optional[Tuple[int, Dict, Dict]]:
-        """
-        Method for sampling one batch to use in training.
-        Can return None, if training not possible.
-        Method is responsible for ordering/shuffling samples.
-
-        Implement this method!
-
-        :parameter episode_number: Episode to sample a batch from, 0 is the first episode of data,
-        each episode consists of bot.config.EPISODE_SIZE sentences. pass negative integers to indicate the
-        last (-1), second last (-2) and so on episodes
-
-        :return: a tuple of batch size and dicts of input and output batch
-        """
-        raise NotImplementedError()
-
-    def _can_sample_batch(self, episode_number) -> bool:
-        """"""
-        raise NotImplementedError()
-
-    def _prediction_to_action(self, prediction: numpy.ndarray) -> str:
-        """
-        Implement this to process a raw model prediction into an action name
-
-        :param prediction: a 1D numpy array resulting from querying the model (2nd dimension squeezed)
-
-        :returns: a action name string
-        """
-        raise NotImplementedError()
 
     def _backup_weights(self):
         logger.info('Backing up weight file...')
@@ -260,7 +270,7 @@ class QueryableModelInterface(metaclass=Singleton):
         logger.info('Successfully saved weights.')
 
     def _load_stats(self):
-        self._stats = QueryableModelInterface._load_stats_by_path(self.model_stats_file)
+        self._stats = AbstractBot._load_stats_by_path(self.model_stats_file)
 
     @staticmethod
     def _load_stats_by_path(path):
@@ -268,7 +278,7 @@ class QueryableModelInterface(metaclass=Singleton):
             with open(path, 'rb') as file:
                 return pickle.load(file)
         else:
-            return QueryableModelInterface._get_empty_stats()
+            return AbstractBot._get_empty_stats()
 
     @staticmethod
     def _get_empty_stats():
@@ -329,7 +339,7 @@ class QueryableModelInterface(metaclass=Singleton):
             callback.writer.flush()
 
 
-class DeepMindModel(QueryableModelInterface):
+class DeepMindBot(AbstractBot):
     def __init__(self, bot_user, load_dir=None):
         super().__init__(model_base_name='deep_mind_model', load_dir=load_dir)
         self._bot_user = bot_user
@@ -382,7 +392,7 @@ class DeepMindModel(QueryableModelInterface):
         return self._epsilon_callback.value
 
     def _sample_batch(self, episode_number) -> Tuple[int, Dict, Dict]:
-        start, stop = DeepMindModel._episode_to_range(episode_number)
+        start, stop = DeepMindBot._episode_to_range(episode_number)
         sentences = \
             [Sentence.sample_sentence_in_range(self._bot_user.username, start, stop) for _ in range(0, BATCH_SIZE)]
         transitions = []
@@ -398,8 +408,9 @@ class DeepMindModel(QueryableModelInterface):
                     '-said_on'
                 )[:CONTEXT_LENGTH * 2 + 4]
                 context_sentences = list(reversed(context_sentences))
-                # re-sample, since this sample has not enough context
-                sentence = Sentence.sample_sentence_in_range(self._bot_user.username, start, stop)
+                if len(context_sentences) < 4:
+                    # re-sample, since this sample has not enough context
+                    sentence = Sentence.sample_sentence_in_range(self._bot_user.username, start, stop)
             try:
                 a1 = Action(context_sentences.pop())
                 s1 = State(context_sentences.pop())
@@ -460,7 +471,7 @@ class DeepMindModel(QueryableModelInterface):
         )
 
     def _can_sample_batch(self, episode_number) -> bool:
-        start, stop = DeepMindModel._episode_to_range(episode_number)
+        start, stop = DeepMindBot._episode_to_range(episode_number)
         try:
             return Sentence.has_episode(start, stop)
         except NoDataException:
@@ -478,6 +489,6 @@ class DeepMindModel(QueryableModelInterface):
             end += num_sentences
         return start, end
 
-    def _prediction_to_action(self, prediction: numpy.ndarray) -> str:
+    def _prediction_to_action_name(self, prediction: numpy.ndarray) -> str:
         prediction = prediction[0]
         return ACTIONS[prediction.argmax()]
