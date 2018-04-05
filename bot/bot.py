@@ -10,8 +10,6 @@ import tensorflow as tf
 from keras.callbacks import TensorBoard
 
 from bot.callbacks import DiscountCallback, EpsilonCallback, TargetResetCallback
-from bot.config import BATCH_SIZE, ACTIONS, LOG_DIR, WEIGHTS_DIR, CONTEXT_LENGTH, NUM_ACTIONS, \
-    STATE_SHAPE, CONTEXT_SHAPE, EPISODE_SIZE, STEPS_PER_EPISODE
 from bot.exceptions import NoDataException
 from bot.neural_nets import get_deep_mind_model
 from data.action import Action
@@ -21,6 +19,7 @@ from data.state import State
 from data.transition import Transition
 from data.turn import Turn
 from turns.models import Sentence
+from config.models import Configuration
 
 logger = logging.getLogger("bot")
 
@@ -40,6 +39,7 @@ class AbstractBot(metaclass=Singleton):
     The core of the chat bot.
     Extend this class to use your models and logic.
     """
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # ABSTRACT METHODS                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -64,7 +64,7 @@ class AbstractBot(metaclass=Singleton):
         Implement this method!
 
         :parameter episode_number: Episode to sample a batch from, 0 is the first episode of data,
-        each episode consists of bot.config.EPISODE_SIZE sentences. pass negative integers to indicate the
+        each episode consists of Configuration.episode_size sentences. pass negative integers to indicate the
         last (-1), second last (-2) and so on episodes
 
         :return: a tuple of batch size and dicts of input and output batch
@@ -132,7 +132,7 @@ class AbstractBot(metaclass=Singleton):
         Implement to specify callbacks used.
         Defaults to using only TensorBoard callback.
         """
-        self._callbacks = [TensorBoard(log_dir=os.path.join(LOG_DIR, self._model.name))]
+        self._callbacks = [TensorBoard(log_dir=os.path.join(Configuration.get_active().log_dir, self._model.name))]
 
     def _on_weights_loaded(self):
         """
@@ -157,7 +157,7 @@ class AbstractBot(metaclass=Singleton):
                     see keras.model.predict
         """
         with self._graph.as_default():
-            return self._model.predict(inputs, batch_size=BATCH_SIZE)
+            return self._model.predict(inputs, batch_size=Configuration.get_active().batch_size)
 
     def query(self, raw_input) -> str:
         """
@@ -196,7 +196,7 @@ class AbstractBot(metaclass=Singleton):
                 training_loss = 0
                 batches_trained = 0
                 logger.info('Bot training on episode #{}'.format(self.episodes_seen))
-                for step in range(0, STEPS_PER_EPISODE):
+                for step in range(0, Configuration.get_active().steps_per_episode):
                     num_samples, x, y = self._sample_batch(self.episodes_seen)
                     if num_samples > 0:
                         loss = self._perform_training_step((x, y))
@@ -234,8 +234,9 @@ class AbstractBot(metaclass=Singleton):
     @staticmethod
     def list_available_models():
         models = []
-        for name in os.listdir(WEIGHTS_DIR):
-            stats = AbstractBot._load_stats_by_path(os.path.join(WEIGHTS_DIR, name, 'stats.pickle'))
+        for name in os.listdir(Configuration.get_active().weights_dir):
+            stats = AbstractBot._load_stats_by_path(
+                os.path.join(Configuration.get_active().weights_dir, name, 'stats.pickle'))
             model = (name, stats)
             models.append(model)
         return models
@@ -313,7 +314,7 @@ class AbstractBot(metaclass=Singleton):
 
     @property
     def model_directory(self):
-        return os.path.join(WEIGHTS_DIR, self._model.name)
+        return os.path.join(Configuration.get_active().weights_dir, self._model.name)
 
     @property
     def model_weight_file(self):
@@ -352,10 +353,11 @@ class DeepMindBot(AbstractBot):
         :param load_model_dir: directory of a previously trained and saved model, leave None if you want a fresh one
          use 'latest' for the last trained model with the given base name
         """
-        if not os.path.isdir(LOG_DIR):
-            os.makedirs(LOG_DIR)
-        num_models = len([name for name in os.listdir(LOG_DIR) if
-                          os.path.isdir(os.path.join(LOG_DIR, name)) and self._model_base_name in name])
+        if not os.path.isdir(Configuration.get_active().log_dir):
+            os.makedirs(Configuration.get_active().log_dir)
+        num_models = len([name for name in os.listdir(Configuration.get_active().log_dir) if
+                          os.path.isdir(os.path.join(Configuration.get_active().log_dir,
+                                                     name)) and self._model_base_name in name])
         if load_model_dir == 'latest':
             model_number = num_models - 1
             model_name = '{}_v{:03d}'.format(self._model_base_name, model_number)
@@ -394,7 +396,8 @@ class DeepMindBot(AbstractBot):
     def _sample_batch(self, episode_number) -> Tuple[int, Dict, Dict]:
         start, stop = DeepMindBot._episode_to_range(episode_number)
         sentences = \
-            [Sentence.sample_sentence_in_range(self._bot_user.username, start, stop) for _ in range(0, BATCH_SIZE)]
+            [Sentence.sample_sentence_in_range(self._bot_user.username, start, stop) for _ in
+             range(0, Configuration.get_active().batch_size)]
         transitions = []
         for sentence in sentences:
             context_sentences = []
@@ -406,7 +409,7 @@ class DeepMindBot(AbstractBot):
                     said_on__lte=sentence.said_on
                 ).order_by(
                     '-said_on'
-                )[:CONTEXT_LENGTH * 2 + 4]
+                )[:Configuration.get_active().context_length * 2 + 4]
                 context_sentences = list(reversed(context_sentences))
                 if len(context_sentences) < 4:
                     # re-sample, since this sample has not enough context
@@ -416,23 +419,23 @@ class DeepMindBot(AbstractBot):
                 s1 = State(context_sentences.pop())
                 turns = Turn.sentences_to_turns(context_sentences, self._bot_user)
                 # context turns list should only be CONTEXT_LENGTH long
-                raw_context_t1 = turns[0:CONTEXT_LENGTH]
-                context_t1 = Context.get_single_context(raw_context_t1, CONTEXT_LENGTH)
+                raw_context_t1 = turns[0:Configuration.get_active().context_length]
+                context_t1 = Context.get_single_context(raw_context_t1, Configuration.get_active().context_length)
 
                 a0 = Action(context_sentences.pop())
                 s0 = State(context_sentences.pop())
                 turns = Turn.sentences_to_turns(context_sentences, self._bot_user)
-                context_t0 = Context.get_single_context(turns, CONTEXT_LENGTH)
+                context_t0 = Context.get_single_context(turns, Configuration.get_active().context_length)
             except IntentError as e:
                 logger.error('Error occurred while processing sampled sentence {}. See below.'.format(sentence))
                 raise e
 
             transition = Transition(s0, a0, context_t0, s1, a1, context_t1)
             transitions.append(transition)
-        if len(transitions) < BATCH_SIZE:
+        if len(transitions) < Configuration.get_active().batch_size:
             return 0, {}, {}
 
-        assert len(transitions) == BATCH_SIZE
+        assert len(transitions) == Configuration.get_active().batch_size
 
         actions = [transition.action_t0 for transition in transitions]
         states = numpy.array([transition.state_t0.as_vector() for transition in transitions])
@@ -442,15 +445,17 @@ class DeepMindBot(AbstractBot):
         terminals = numpy.array([0 if transition.terminal else 1 for transition in transitions])
         rewards = numpy.array([transition.action_t0.reward for transition in transitions])
 
-        assert future_states.shape == (BATCH_SIZE,) + STATE_SHAPE
-        assert contexts.shape == (BATCH_SIZE,) + CONTEXT_SHAPE
-        assert rewards.shape == (BATCH_SIZE,)
+        assert future_states.shape == (Configuration.get_active().batch_size,) + Configuration.get_active().state_shape
+        assert contexts.shape == (Configuration.get_active().batch_size,) + Configuration.get_active().context_shape
+        assert rewards.shape == (Configuration.get_active().batch_size,)
 
         target_quality = self._target.predict({
             'state_input': future_states,
             'context_input': future_contexts
         })
-        assert target_quality.shape == (BATCH_SIZE, NUM_ACTIONS)
+        assert target_quality.shape == (
+            Configuration.get_active().batch_size, Configuration.get_active().number_actions
+        )
         quality_batch = target_quality.max(axis=1).flatten()
         quality_batch *= self.discount
         quality_batch *= terminals
@@ -460,7 +465,7 @@ class DeepMindBot(AbstractBot):
 
         logger.debug("Working with qualities {}".format(quality_batch))
 
-        target_quality = numpy.zeros((BATCH_SIZE, NUM_ACTIONS))
+        target_quality = numpy.zeros((Configuration.get_active().batch_size, Configuration.get_active().number_actions))
         for target, action, quality in zip(target_quality, actions, quality_batch):
             target[action.intent_index] = quality
 
@@ -482,8 +487,8 @@ class DeepMindBot(AbstractBot):
         num_sentences = Sentence.objects.count()
         if num_sentences == 0:
             raise NoDataException
-        start = episode_number * EPISODE_SIZE
-        end = (episode_number + 1) * EPISODE_SIZE
+        start = episode_number * Configuration.get_active().episode_size
+        end = (episode_number + 1) * Configuration.get_active().episode_size
         if episode_number < 0:
             start += num_sentences
             end += num_sentences
@@ -491,4 +496,4 @@ class DeepMindBot(AbstractBot):
 
     def _prediction_to_action_name(self, prediction: numpy.ndarray) -> str:
         prediction = prediction[0]
-        return ACTIONS[prediction.argmax()]
+        return list(Configuration.get_active().action_intents.all())[prediction.argmax()].name

@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 import numpy
 
-from bot.config import NUM_ACTIONS, STATE_SHAPE, CONTEXT_LENGTH
+from config.models import Configuration
 from data.action import Action
 from data.state import State
 
@@ -89,7 +89,9 @@ class Context:
                 entry = numpy.concatenate((state.as_vector(), action.as_vector()))
                 ret.append(entry)
         # a single context vector entry consists of a state and action both as vectors and concatenated
-        padding = numpy.zeros((missing_context, STATE_SHAPE[0] + NUM_ACTIONS))
+        padding = numpy.zeros(
+            (missing_context, Configuration.get_active().state_shape[0] + Configuration.get_active().number_actions)
+        )
         ret = numpy.array(ret)
         # logger.debug("Shape of known contexts is {}, while shape of padding is {}".format(ret.shape, padding.shape))
         if len(ret) is not 0:
@@ -122,7 +124,7 @@ class Context:
         return context
 
     @staticmethod
-    def get_single_context(turns, context_length: int = CONTEXT_LENGTH):
+    def get_single_context(turns, context_length: int = Configuration.get_active().context_length):
         """
         Creates a context object from turns, useful for training
         :param turns: the Turns that make up the context, e.g. the turns prior to the current Sentence/State

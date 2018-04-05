@@ -1,5 +1,4 @@
-"""SilburyDataGrabber URL Configuration
-
+"""
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/1.11/topics/http/urls/
 Examples:
@@ -15,8 +14,9 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
-from django.http import HttpResponse
 from django.contrib.auth import views as auth_views
+
+from chat import views as chat_views
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
@@ -24,11 +24,9 @@ urlpatterns = [
 
     url(r'^turns/', include('turns.urls')),
     url(r'^chat/', include('chat.urls')),
-    url(r'^data/', include('data.urls')),
     url(r'^bot/', include('bot.urls')),
-    url(r'^content/', include('content.urls')),
 
     url(r'^accounts/login/$', auth_views.login, name='login'),
     url(r'^accounts/logout/$', auth_views.logout, name='logout'),
-    url(r'^$', HttpResponse, name='index')
+    url(r'^$', chat_views.index, name='index')
 ]

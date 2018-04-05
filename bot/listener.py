@@ -5,9 +5,9 @@ import numpy
 from django.contrib.auth.models import User
 
 from bot.bot import DeepMindBot
-from bot.config import CONTEXT_LENGTH, UNKNOWN_INTENT, DIDNT_UNDERSTAND_INTENT_ACTION
 from chat.events import Singleton
 from chat.models import Message, Chat
+from config.models import Configuration
 from content.responses import ResponseFactory
 from data.context import Context
 from data.state import State
@@ -21,7 +21,7 @@ logger = logging.getLogger('bot')
 class BotListener(metaclass=Singleton):
     def __init__(self, bot_user):
         self._bot_user = bot_user
-        self.model = DeepMindBot(bot_user=self._bot_user)
+        self.bot = DeepMindBot(bot_user=self._bot_user, load_dir=None)
         self._response_factories = {}
         self._init_factories()
 
@@ -34,11 +34,11 @@ class BotListener(metaclass=Singleton):
         state = State(sentence)
 
         # mapping unknown_intent -> "Sorry didn't understand that" is hard coded, to avoid confusion
-        if sentence.intent.template.name != UNKNOWN_INTENT:
-            action_name = self.model.query({'state_input': numpy.array([state.as_vector()]),
-                                            'context_input': numpy.array([context.as_matrix()])})
+        if sentence.intent.template.name != Configuration.get_active().unknown_intent.name:
+            action_name = self.bot.query({'state_input': numpy.array([state.as_vector()]),
+                                          'context_input': numpy.array([context.as_matrix()])})
         else:
-            action_name = DIDNT_UNDERSTAND_INTENT_ACTION
+            action_name = Configuration.get_active().didnt_understand_intent.name
 
         human_user = User.objects.get(username=sentence.said_by)
         chat = Chat.objects.get(initiator=human_user, receiver=self._bot_user)
@@ -63,7 +63,7 @@ class BotListener(metaclass=Singleton):
             action_name
         ))
 
-        self.model.train()
+        self.bot.train()
 
     def _init_factories(self):
         logger.info('Initializing factories...')
@@ -94,7 +94,7 @@ class BotListener(metaclass=Singleton):
         return factory
 
     def _create_context_from_sentence(self, sentence):
-        sentences_needed = CONTEXT_LENGTH * 2  # each context needs 2 sentences to be built
+        sentences_needed = Configuration.get_active().context_length * 2  # each context needs 2 sentences to be built
         sentence_query = Sentence.objects.filter(said_in=sentence.said_in).order_by('-said_on')
         sentences_available = sentence_query.count()
         num_sentences = min(sentences_needed, sentences_available)
@@ -114,5 +114,5 @@ class BotListener(metaclass=Singleton):
         logger.debug('Reacting to sentence {}'.format(single_sentence))
         logger.debug('Have these sentences as context: {}'.format(sentences))
         turns = Turn.sentences_to_turns(sentences, self._bot_user)
-        context = Context.get_single_context(turns, CONTEXT_LENGTH)
+        context = Context.get_single_context(turns, Configuration.get_active().context_length)
         return context

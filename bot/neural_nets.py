@@ -4,8 +4,7 @@ import keras.backend as K
 from keras.layers import Concatenate, Dense, Input, Layer, Conv1D, Flatten, Reshape, Lambda, Dropout
 from keras.models import Model
 
-from bot.config import NUM_ACTIONS, IMAGINATION_DEPTH, NUM_INTENTS, SENTIMENT_LEN, \
-    USER_PROFILE_LEN, CONTEXT_SHAPE, STATE_SHAPE
+from config.models import Configuration
 
 
 def get_quality_model(state, contexts) -> Layer:
@@ -20,11 +19,11 @@ def get_quality_model(state, contexts) -> Layer:
     x = Concatenate()([state, x])
     x = Dense(units=64)(x)
 
-    predicted_quality = Dense(units=NUM_ACTIONS, use_bias=True, activation='linear')(x)
+    predicted_quality = Dense(units=Configuration.get_active().number_actions, use_bias=True, activation='linear')(x)
     return predicted_quality
 
 
-def get_environment_model(state: Layer, context: Layer, lookahead=IMAGINATION_DEPTH) -> Layer:
+def get_environment_model(state: Layer, context: Layer, lookahead=3) -> Layer:
     # output for the aggregator
     new_states = []
     predicted_rewards = []
@@ -42,11 +41,17 @@ def get_environment_model(state: Layer, context: Layer, lookahead=IMAGINATION_DE
 
         predicted_rewards.append(predicted_reward)
 
-        predicted_intent = Dense(units=NUM_INTENTS, activation='softmax', use_bias=True,
+        predicted_intent = Dense(units=Configuration.get_active().number_state_intents,
+                                 activation='softmax',
+                                 use_bias=True,
                                  name='intent_t{}'.format(t))(x)
-        predicted_sentiment = Dense(units=SENTIMENT_LEN, activation='linear', use_bias=True,
+        predicted_sentiment = Dense(units=Configuration.get_active().sentiment_length,
+                                    activation='linear',
+                                    use_bias=True,
                                     name='sentiment_t{}'.format(t))(x)
-        predicted_user_profile = Dense(units=USER_PROFILE_LEN, activation='sigmoid', use_bias=True,
+        predicted_user_profile = Dense(units=Configuration.get_active().number_of_user_profile_variables,
+                                       activation='sigmoid',
+                                       use_bias=True,
                                        name='profile_t{}'.format(t))(x)
 
         predicted_state = Concatenate(name='state_t{}_predicted'.format(t + 1))(
@@ -55,9 +60,12 @@ def get_environment_model(state: Layer, context: Layer, lookahead=IMAGINATION_DE
         predicted_context = Concatenate(name='context_t{}_predicted'.format(t + 1))(
             [predicted_state, predicted_action]
         )
-        predicted_context = Reshape(target_shape=(1, STATE_SHAPE[0] + NUM_ACTIONS,))(predicted_context)
+        predicted_context = Reshape(target_shape=(
+            1,
+            Configuration.get_active().state_shape[0] + Configuration.get_active().number_actions,
+        ))(predicted_context)
 
-        context = Reshape(target_shape=CONTEXT_SHAPE)(context)
+        context = Reshape(target_shape=Configuration.get_active().context_shape)(context)
         context = Lambda(push_context, output_shape=push_context_out_shape, name='context_t{}'.format(t + 1))(
             [context, predicted_context])
 
@@ -89,15 +97,15 @@ def get_encoder(states: List[Layer], rewards: List[Layer]) -> List[Layer]:
 
 
 def get_imagination_model() -> Model:
-    context = Input(name='context_input', shape=CONTEXT_SHAPE)
-    state = Input(name='state_input', shape=STATE_SHAPE)
+    context = Input(name='context_input', shape=Configuration.get_active().context_shape)
+    state = Input(name='state_input', shape=Configuration.get_active().state_shape)
 
     imagination = get_environment_model(state, context)
     model_free_path = get_quality_model(state, context)
 
     x = Concatenate()([imagination, model_free_path])
 
-    combined_quality = Dense(units=NUM_ACTIONS, activation='relu', use_bias=True)(x)
+    combined_quality = Dense(units=Configuration.get_active().number_actions, activation='relu', use_bias=True)(x)
 
     model = Model(inputs=[state, context], outputs=[combined_quality], name='imagination_model')
     model.compile(optimizer='sgd', loss='mse')
@@ -105,8 +113,8 @@ def get_imagination_model() -> Model:
 
 
 def get_deep_mind_model(name=None) -> Model:
-    state_input = Input(name='state_input', shape=STATE_SHAPE)
-    context_input = Input(name='context_input', shape=CONTEXT_SHAPE)
+    state_input = Input(name='state_input', shape=Configuration.get_active().state_shape)
+    context_input = Input(name='context_input', shape=Configuration.get_active().context_shape)
 
     cxt = Conv1D(filters=32, kernel_size=3)(context_input)
     cxt = Conv1D(filters=32, kernel_size=3)(cxt)
@@ -117,7 +125,7 @@ def get_deep_mind_model(name=None) -> Model:
 
     x = Dense(units=128)(x)
 
-    output_layer = Dense(units=NUM_ACTIONS, activation='linear', name='quality_output')(x)
+    output_layer = Dense(units=Configuration.get_active().number_actions, activation='linear', name='quality_output')(x)
 
     model = Model(name=name, inputs=[state_input, context_input], outputs=[output_layer])
     model.compile('adam', 'mse')
@@ -125,8 +133,8 @@ def get_deep_mind_model(name=None) -> Model:
 
 
 def get_simple_model(name=None) -> Model:
-    state = Input(name='state_input', shape=STATE_SHAPE)
-    action = Input(name='action_input', shape=(NUM_ACTIONS,))
+    state = Input(name='state_input', shape=Configuration.get_active().state_shape)
+    action = Input(name='action_input', shape=(Configuration.get_active().number_actions,))
 
     # x_1 = Flatten()(context)
 

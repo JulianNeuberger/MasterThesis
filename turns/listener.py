@@ -6,9 +6,9 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.utils import timezone
 
-from bot.config import SECONDS_FOR_TERMINAL, SECONDS_PER_DAY
 from bot.listener import BotListener
 from chat.events import ChatMessageEvent
+from config.models import Configuration
 from turns.models import Sentence, Dialogue
 from turns.util import update_all_for_single_sentence, update_user_profile_for_single_dialogue
 
@@ -86,12 +86,12 @@ class TurnsTerminator(Thread):
                 'SELECT * FROM turns_sentence GROUP BY said_in_id ORDER BY said_on DESC;')
             for sentence in last_sentence_in_dialogues:
                 pause = timezone.now() - sentence.said_on
-                pause = pause.seconds + pause.days * SECONDS_PER_DAY
-                if pause >= SECONDS_FOR_TERMINAL and not sentence.terminal:
+                pause = pause.seconds + pause.days * Configuration.get_active().seconds_per_day
+                if pause >= Configuration.get_active().seconds_for_terminal and not sentence.terminal:
                     logger.info(
                         "Got no new sentence after {} seconds, {} has to be a terminal sentence".format(pause,
                                                                                                         sentence.value))
                     sentence.terminal = True
                     sentence.save()
             # Nyquist frequency, so we don't miss terminals
-            sleep(SECONDS_FOR_TERMINAL / 2)
+            sleep(Configuration.get_active().seconds_for_terminal / 2)

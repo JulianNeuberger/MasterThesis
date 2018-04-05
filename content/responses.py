@@ -1,12 +1,17 @@
+import logging
 from random import randint
 
-from bot.config import ACTION_SENTENCES
+from config.models import Configuration
 from content.content import SimpleContentInterface
+
+logger = logging.getLogger('content')
 
 
 class ResponseFactory:
     def __init__(self):
-        self._base_sentences = ACTION_SENTENCES
+        self._base_sentences = Configuration.get_active().response_templates.all()
+        for template in self._base_sentences:
+            template.prepare()
         self._context = {}
         self._tracking_table = {
             'query.player.height': ['player'],
@@ -90,9 +95,12 @@ class ResponseFactory:
         })
 
     def _get_template(self, intent_name):
-        base_sentences = self._base_sentences[intent_name]
-        base_sentence = base_sentences[randint(0, len(base_sentences) - 1)]
-        return base_sentence
+        base_sentences = [base_sentence for base_sentence in self._base_sentences if
+                          base_sentence.for_action.name == intent_name]
+        assert len(base_sentences) > 0, 'No template for action {}, add one!'.format(intent_name)
+        if len(base_sentences) > 1:
+            return base_sentences[randint(0, len(base_sentences) - 1)]
+        return base_sentences[0]
 
     def _get_user_name(self):
         return self._context.get('given-name', None)
