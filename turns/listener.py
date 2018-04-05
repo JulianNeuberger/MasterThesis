@@ -50,6 +50,7 @@ class ChatMessageListener:
         sentence = Sentence(value=event.value,
                             said_by=event.user.username,
                             said_in=dialogue,
+                            reward=event.reward / 10,
                             raw_sentence=event.instance)
         sentence = update_all_for_single_sentence(sentence, save=True)
         update_user_profile_for_single_dialogue(sentence.said_in, False, True)

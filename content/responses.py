@@ -24,7 +24,7 @@ class ResponseFactory:
             'response.player.news': self._content,
             'response.player.information.age': self._player_age,
             'response.player.information.height': self._player_height,
-            'response.player.information.goals': self._player_height,
+            'response.player.information.goals': self._player_goals,
             'response.player.information.shoe': self._player_shoe
         }
         self._content_interface = SimpleContentInterface()

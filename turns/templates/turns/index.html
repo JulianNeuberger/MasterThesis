@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Turns utilities</title>
+</head>
+<body>
+<h1>Intents</h1>
+<form method="post" action="{% url 'update_intents' %}">
+    {% csrf_token %}
+    <label>
+        Override?
+        <input type="checkbox" name="override">
+    </label>
+    <button type="submit">Update intents!</button>
+</form>
+
+<h1>User profiles</h1>
+<form method="post" action="{% url 'update_profiles' %}">
+    {% csrf_token %}
+    <label>
+        Override?
+        <input type="checkbox" name="override">
+    </label>
+    <button type="submit">Update intents!</button>
+</form>
+
+<h1>Sentiments</h1>
+<form method="post" action="{% url 'update_sentiments' %}">
+    {% csrf_token %}
+    <label>
+        Override?
+        <input type="checkbox" name="override">
+    </label>
+    <button type="submit">Update sentiments!</button>
+</form>
+</body>
+</html>

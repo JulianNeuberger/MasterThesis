@@ -13,9 +13,10 @@ from bot.callbacks import DiscountCallback, EpsilonCallback, TargetResetCallback
 from bot.config import BATCH_SIZE, ACTIONS, LOG_DIR, WEIGHTS_DIR, CONTEXT_LENGTH, NUM_ACTIONS, \
     STATE_SHAPE, CONTEXT_SHAPE, EPISODE_SIZE, STEPS_PER_EPISODE
 from bot.exceptions import NoDataException
-from bot.model import get_deep_mind_model
+from bot.neural_nets import get_deep_mind_model
 from data.action import Action
 from data.context import Context
+from data.exceptions import IntentError
 from data.state import State
 from data.turn import Turn
 from events.util import Singleton
@@ -172,10 +173,10 @@ class QueryableModelInterface(metaclass=Singleton):
                     num_samples, x, y = self._sample_batch(self.episodes_seen)
                     if num_samples > 0:
                         episode_logs['val_loss'] = self._model.test_on_batch(x, y)
-                self._on_episode_end(self.episodes_seen, episode_logs)
                 self.episodes_seen += 1
                 self._save_stats()
                 self._save_weights()
+                self._on_episode_end(self.episodes_seen, episode_logs)
                 return True
 
     def save_weights(self):
@@ -208,9 +209,8 @@ class QueryableModelInterface(metaclass=Singleton):
             callback.on_batch_end(batch_number, logs)
 
     def _on_episode_end(self, episode_number, logs):
+        logger.debug('Episode ended, notifying callbacks {}'.format(self._callbacks))
         for callback in self._callbacks:
-            if hasattr(callback, 'writer'):
-                QueryableModelInterface._write_log(callback, ['loss', 'val_loss'], logs.values(), episode_number)
             callback.on_epoch_end(episode_number, logs)
 
     def _sample_batch(self, episode_number) -> Optional[Tuple[int, Dict, Dict]]:
@@ -320,6 +320,7 @@ class QueryableModelInterface(metaclass=Singleton):
     @staticmethod
     def _write_log(callback, names, logs, batch_no):
         for name, value in zip(names, logs):
+            logger.debug('Writing logs for callback {}.'.format(type(callback).__name__))
             summary = tf.Summary()
             summary_value = summary.value.add()
             summary_value.simple_value = value
@@ -329,7 +330,7 @@ class QueryableModelInterface(metaclass=Singleton):
 
 
 class DeepMindModel(QueryableModelInterface):
-    def __init__(self, bot_user, load_dir='latest'):
+    def __init__(self, bot_user, load_dir=None):
         super().__init__(model_base_name='deep_mind_model', load_dir=load_dir)
         self._bot_user = bot_user
 
@@ -389,20 +390,32 @@ class DeepMindModel(QueryableModelInterface):
             context_sentences = []
             while len(context_sentences) < 4:
                 assert sentence.said_by == self._bot_user.username
-                context_sentences = Sentence.objects \
-                                        .filter(said_in=sentence.said_in).filter(said_on__lte=sentence.said_on) \
-                                        .order_by('-said_on')[:CONTEXT_LENGTH * 2 + 4]
+                context_sentences = Sentence.objects.filter(
+                    said_in=sentence.said_in
+                ).filter(
+                    said_on__lte=sentence.said_on
+                ).order_by(
+                    '-said_on'
+                )[:CONTEXT_LENGTH * 2 + 4]
                 context_sentences = list(reversed(context_sentences))
                 # re-sample, since this sample has not enough context
                 sentence = Sentence.sample_sentence_in_range(self._bot_user.username, start, stop)
-            a1 = Action(context_sentences.pop())
-            s1 = State(context_sentences.pop())
-            a0 = Action(context_sentences.pop())
-            s0 = State(context_sentences.pop())
-            turns = Turn.sentences_to_turns(context_sentences, self._bot_user)
-            context_t1 = Context.get_single_context(turns, CONTEXT_LENGTH)
-            turns = Turn.sentences_to_turns(context_sentences, self._bot_user)
-            context_t0 = Context.get_single_context(turns, CONTEXT_LENGTH)
+            try:
+                a1 = Action(context_sentences.pop())
+                s1 = State(context_sentences.pop())
+                turns = Turn.sentences_to_turns(context_sentences, self._bot_user)
+                # context turns list should only be CONTEXT_LENGTH long
+                raw_context_t1 = turns[0:CONTEXT_LENGTH]
+                context_t1 = Context.get_single_context(raw_context_t1, CONTEXT_LENGTH)
+
+                a0 = Action(context_sentences.pop())
+                s0 = State(context_sentences.pop())
+                turns = Turn.sentences_to_turns(context_sentences, self._bot_user)
+                context_t0 = Context.get_single_context(turns, CONTEXT_LENGTH)
+            except IntentError as e:
+                logger.error('Error occurred while processing sampled sentence {}. See below.'.format(sentence))
+                raise e
+
             transition = Transition(s0, a0, context_t0, s1, a1, context_t1)
             transitions.append(transition)
         if len(transitions) < BATCH_SIZE:

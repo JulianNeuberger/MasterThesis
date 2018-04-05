@@ -14,22 +14,36 @@ from turns.models import Sentence, Parameter, Intent, IntentTemplate, Dialogue, 
 logger = logging.getLogger('turns')
 
 
-def update_sentiment_for_all_sentences(override=False):
-    _update_sentence_generic(update_sentiment_for_single_sentence, 'sentiment', override)
+def update_sentiment_for_all_sentences(override=False, query_set=None):
+    _update_sentence_generic(update_sentiment_for_single_sentence, 'sentiment', override, query_set)
 
 
-def update_intents_for_all_sentences(override=False):
-    _update_sentence_generic(update_intent_for_single_sentence, 'intent', override)
+def update_intents_for_all_sentences(override=False, query_set=None):
+    _update_sentence_generic(update_intent_for_single_sentence, 'intent', override, query_set)
 
 
-def update_reward_for_all_sentences(override=False):
-    _update_sentence_generic(update_reward_for_single_sentence, 'reward', override)
+def update_reward_for_all_sentences(override=False, query_set=None):
+    _update_sentence_generic(update_reward_for_single_sentence, 'reward', override, query_set)
 
 
-def _update_sentence_generic(update_method: Callable[[Sentence, bool], Any], field_name, override=False):
+def _update_sentence_generic(update_method: Callable[[Sentence, bool], Any],
+                             field_name,
+                             override=False,
+                             query_set=None):
+    """
+    Updates the sentences' "field_name" in the given queryset with the given update method.
+    Counts the number of sentences touched/skipped and logs these numbers.
+
+    :param update_method: a callable that takes a sentence and a bool and returns the updated object
+    :param field_name: name of field to update
+    :param query_set: which sentences are considered? defaults to all
+    :param override: override existing values?
+    :return: Nothing
+    """
     touched = 0
     skipped = 0
-    for sentence in Sentence.objects.all():
+    query_set = query_set if query_set is not None else Sentence.objects.all()
+    for sentence in query_set:
         if override or sentence.sentiment is None:
             new_val = update_method(sentence, override)
             logger.debug("New {} for sentence '{}' is {}".format(field_name,
