@@ -1,5 +1,4 @@
 import os
-import time
 from typing import Tuple
 
 from django.db import models
@@ -14,7 +13,7 @@ class UserProfileVariable(models.Model):
 
 
 class ResponseTemplate(models.Model):
-    for_action = models.ForeignKey(IntentTemplate, related_name='+')
+    for_action = models.ForeignKey(IntentTemplate, related_name='+', on_delete=models.CASCADE)
     value = models.CharField(max_length=256)
 
     _prepared = None
@@ -45,8 +44,8 @@ class Configuration(models.Model):
 
     state_intents = models.ManyToManyField(IntentTemplate, related_name='+')
     action_intents = models.ManyToManyField(IntentTemplate, related_name='+')
-    unknown_intent = models.ForeignKey(IntentTemplate, related_name='+', null=True)
-    didnt_understand_intent = models.ForeignKey(IntentTemplate, related_name='+', null=True)
+    unknown_intent = models.ForeignKey(IntentTemplate, related_name='+', null=True, on_delete=models.CASCADE)
+    didnt_understand_intent = models.ForeignKey(IntentTemplate, related_name='+', null=True, on_delete=models.CASCADE)
     response_templates = models.ManyToManyField(ResponseTemplate)
 
     sentiment_length = models.IntegerField(default=1)
