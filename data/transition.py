@@ -3,7 +3,7 @@ from typing import List, Tuple
 import numpy
 from numpy.core.multiarray import ndarray
 
-from bot.config import CONTEXT_LENGTH
+from config.models import Configuration
 from data.action import Action
 from data.context import Context
 from data.state import State
@@ -55,7 +55,7 @@ class Transition:
             model.action_to_quality(self.action_t0, self.state_t0, self.context_t0, self.state_t1))
 
     @staticmethod
-    def single_transition_from_turns(turns: List[Turn], context_length=CONTEXT_LENGTH):
+    def single_transition_from_turns(turns: List[Turn], context_length=Configuration.get_active().context_length):
         assert len(turns) >= 2, 'You need at least 2 turns for a Transition (= s_0->s_1 with no context)'
         final_turn = turns[-1]
         current_turn = turns[-2]
@@ -64,7 +64,7 @@ class Transition:
         return transition
 
     @staticmethod
-    def all_transitions_from_turns(turns: List[Turn], context_length=CONTEXT_LENGTH):
+    def all_transitions_from_turns(turns: List[Turn], context_length=Configuration.get_active().context_length):
         """
         Creates transitions from a list of turns. Reverses that list of turns, so put in a list of turns
         with ascending "dates" of these turns.

@@ -11,7 +11,7 @@ bot_listener = BotListener(bot_user)
 
 
 def training_view(request):
-    success = bot_listener.model.pre_train()
+    success = bot_listener.bot.pre_train()
     response = {
         'success': success,
         'errors': []
@@ -20,7 +20,7 @@ def training_view(request):
 
 
 def save_model(request):
-    success = bot_listener.model.save_weights()
+    success = bot_listener.bot.save_weights()
     response = {
         'success': success,
         'errors': []
@@ -41,4 +41,4 @@ def change_model(request):
         model_name = request.POST['name']
     except KeyError:
         raise SuspiciousOperation("Change model view needs a name POST parameter (the model name), to change the model")
-    bot_listener.model = AbstractBot()
+    bot_listener.bot = AbstractBot()

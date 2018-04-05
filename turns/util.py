@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from requests import post
 
 import dialogflow
-from bot.config import SECONDS_FOR_TERMINAL, SECONDS_PER_DAY
+from config.models import Configuration
 from turns.models import Sentence, Parameter, Intent, IntentTemplate, Dialogue, UserProfile, Player, Team, \
     ParameterTemplate
 
@@ -282,8 +282,9 @@ def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False, sav
                 next_sentence = sentences[next_i]
                 if next_sentence.intent is not None:
                     duration_to_next = next_sentence.said_on - sentence.said_on
-                    seconds_between_sentences = duration_to_next.seconds + duration_to_next.days * SECONDS_PER_DAY
-                    if seconds_between_sentences > SECONDS_FOR_TERMINAL:
+                    seconds_between_sentences = duration_to_next.seconds
+                    seconds_between_sentences += duration_to_next.days * Configuration.get_active().seconds_per_day
+                    if seconds_between_sentences > Configuration.get_active().seconds_for_terminal:
                         logger.debug('Got no other message for {} seconds, sentence is terminal!'.format(
                             seconds_between_sentences
                         ))

@@ -2,7 +2,7 @@ import logging
 
 import numpy
 
-from bot.config import ACTIONS, NUM_ACTIONS
+from config.models import Configuration
 from data.exceptions import NoIntentError, NoActionIntentError
 from turns.models import Sentence
 
@@ -18,7 +18,7 @@ class Action:
         :raises NoActionIntentError: if the given sentence has an intent, that cannot be interpreted as action
         """
         self._action_vector = Action.vector_from_sentence(sentence)
-        self._action_index = ACTIONS.index(sentence.intent.template.name)
+        self._action_index = Configuration.get_active().action_index_for_name(sentence.intent.template.name)
         self.reward = float(sentence.reward)
         self.terminal = bool(sentence.terminal)
 
@@ -31,26 +31,26 @@ class Action:
 
     @property
     def name(self):
-        return ACTIONS[self._action_index]
+        return Configuration.action_intents[self._action_index]
 
     @staticmethod
     def vector_from_name(action_name: str):
-        if action_name not in ACTIONS:
+        if not Configuration.get_active().is_action_intent(action_name):
             raise ValueError('There is no Action with name "{}"'.format(action_name))
-        vector = numpy.zeros(NUM_ACTIONS)
-        vector[ACTIONS.index(action_name)] = 1.
+        vector = numpy.zeros(Configuration.get_active().number_actions)
+        vector[Configuration.get_active().action_index_for_name(action_name)] = 1.
         return vector
 
     @staticmethod
     def vector_from_sentence(sentence: Sentence):
         if sentence.intent is None:
             raise NoIntentError(sentence)
-        if sentence.intent.template.name not in ACTIONS:
+        if not Configuration.get_active().is_action_intent(sentence.intent.template.name):
             raise NoActionIntentError(sentence.intent, sentence)
         return Action.vector_from_name(sentence.intent.template.name)
 
     def __str__(self) -> str:
-        return '<Action {}>'.format(ACTIONS[self._action_index])
+        return '<Action {}>'.format(Configuration.get_active().action_intents[self._action_index].name)
 
     def __format__(self, format_spec: str) -> str:
         return self.__str__()

@@ -3,7 +3,7 @@ import logging
 import numpy
 from numpy.core.multiarray import ndarray
 
-from bot.config import INTENTS, NUM_INTENTS, UNKNOWN_INTENT
+from config.models import Configuration
 from turns.models import Sentence, UserProfile
 
 logger = logging.getLogger('data')
@@ -21,10 +21,12 @@ class State:
             self.intent_name = sentence.intent.template.name
             self.intent_vector = State._intent_vector_from_sentence(sentence)
             try:
-                self._intent_index = INTENTS.index(self.intent_name)
+                self._intent_index = Configuration.get_active().state_index_for_name(self.intent_name)
             except ValueError:
                 # not in list --> unknown intent
-                self._intent_index = INTENTS.index(UNKNOWN_INTENT)
+                self._intent_index = Configuration.get_active().state_index_for_name(
+                    Configuration.get_active().unknown_intent.name
+                )
             self.sentiment = float(sentence.sentiment)
             self.user_profile = sentence.user_profile
             self.user_profile_vector = State._convert_user_profile(sentence.user_profile)
@@ -46,10 +48,9 @@ class State:
             intent_name = 'common.unknown'
         else:
             intent_name = sentence.intent.template.name
-        if intent_name not in INTENTS:
-            return numpy.zeros(NUM_INTENTS)
-        intent_vector = numpy.zeros(NUM_INTENTS)
-        intent_vector[INTENTS.index(intent_name)] = 1.
+        intent_vector = numpy.zeros(Configuration.get_active().number_state_intents)
+        if Configuration.get_active().is_state_intent(intent_name):
+            intent_vector[Configuration.get_active().state_index_for_name(intent_name)] = 1.
         return intent_vector
 
     @staticmethod
