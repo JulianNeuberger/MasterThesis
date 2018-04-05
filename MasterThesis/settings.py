@@ -39,14 +39,15 @@ ALLOWED_HOSTS = [
 INSTALLED_APPS = [
     'webpack_loader',
     'rest_framework',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'chat.apps.ChatConfig',
-    'events.apps.EventsConfig',
     'data.apps.DataConfig',
     'bot.apps.BotConfig',
     'turns.apps.TurnsConfig',

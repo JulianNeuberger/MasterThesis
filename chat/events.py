@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 
 from chat.models import Message
 
@@ -14,13 +15,19 @@ class Singleton(type):
         return cls._instances[cls]
 
 
+class ChatMessageEventType(Enum):
+    CREATED = 1
+    RATED = 2
+
+
 class ChatMessageEvent:
-    def __init__(self, message_instance: Message):
+    def __init__(self, message_instance: Message, event_type=ChatMessageEventType.CREATED):
         self.instance = message_instance
         self.value = message_instance.value
         self.user = message_instance.sent_by
         self.channel = message_instance.sent_in
         self.reward = message_instance.reward
+        self.event_type = event_type
 
 
 class ListenerManager(metaclass=Singleton):

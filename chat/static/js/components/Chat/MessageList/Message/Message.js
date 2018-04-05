@@ -89,7 +89,7 @@ export default class Message extends React.Component {
         }
         match = this.IMAGE_REGEX.exec(this.props.message.value);
         if (match) {
-            const url = match[1];
+            const url = match[0];
             return (
                 <div className={styles["rich-container"]}>
                     <img src={url}/>

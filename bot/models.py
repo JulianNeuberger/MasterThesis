@@ -5,7 +5,7 @@ from django.db import models
 class Settings(models.Model):
     chat_bot_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
     """
-    Set this, to answer questions manually, not by chatbot.
+    Set this, to answer questions manually, not by chat bot.
     """
     manual_override = models.BooleanField(default=False)
     added_on = models.DateTimeField(auto_now_add=True)

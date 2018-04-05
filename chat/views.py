@@ -15,7 +15,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from rest_framework import viewsets, generics
 
-from chat.events import ListenerManager, ChatMessageEvent
+from chat.events import ListenerManager, ChatMessageEvent, ChatMessageEventType
 from chat.models import Message, Chat, Settings
 from chat.serializers import MessageSerializer, UserSerializer, ChatSerializer
 
@@ -108,7 +108,7 @@ class MessageViewSet(ChatMessageList, viewsets.ModelViewSet):
         logger.debug('Got updated message, notifying all.')
         instance = serializer.save()
         self.event_manager.notify_all(
-            ChatMessageEvent(message_instance=instance)
+            ChatMessageEvent(message_instance=instance, event_type=ChatMessageEventType.RATED)
         )
         return instance
 
@@ -116,7 +116,7 @@ class MessageViewSet(ChatMessageList, viewsets.ModelViewSet):
         logger.debug('Got new message, notifying all.')
         instance = serializer.save()
         self.event_manager.notify_all(
-            ChatMessageEvent(message_instance=instance)
+            ChatMessageEvent(message_instance=instance, event_type=ChatMessageEventType.CREATED)
         )
         return instance
 

@@ -2,9 +2,10 @@ from django.contrib.auth.models import User
 from django.core.exceptions import SuspiciousOperation
 from django.http import JsonResponse
 
-from bot.bot import QueryableModelInterface, DeepMindModel
+from bot.bot import AbstractBot, DeepMindBot
 from bot.listener import BotListener
 
+# TODO: FIXME: Get from database
 bot_user = User.objects.get(username='Chatbot')
 bot_listener = BotListener(bot_user)
 
@@ -28,7 +29,7 @@ def save_model(request):
 
 
 def list_models(request):
-    models = QueryableModelInterface.list_available_models()
+    models = AbstractBot.list_available_models()
     response = {
         'models': models
     }
@@ -40,4 +41,4 @@ def change_model(request):
         model_name = request.POST['name']
     except KeyError:
         raise SuspiciousOperation("Change model view needs a name POST parameter (the model name), to change the model")
-    bot_listener.model = QueryableModelInterface()
+    bot_listener.model = AbstractBot()

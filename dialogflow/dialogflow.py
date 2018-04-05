@@ -41,14 +41,12 @@ class RestEndpoint:
 
 class DataEndpoint(RestEndpoint):
     @staticmethod
-    @abstractmethod
     def get_all(access_token):
-        pass
+        raise NotImplementedError()
 
     @staticmethod
-    @abstractmethod
     def get_one(dialogflow_id, access_token):
-        pass
+        raise NotImplementedError()
 
 
 class Entities(DataEndpoint):

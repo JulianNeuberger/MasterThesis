@@ -77,6 +77,7 @@ class TurnsTerminator(Thread):
         self.daemon = True
 
     def run(self):
+        # TODO: why?
         sleep(5)
         logger.info("Started TurnsTerminator.")
         logger.info("TurnsTerminator checking for unterminated sentences.")
