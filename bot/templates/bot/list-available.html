@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>available bots</title>
+</head>
+<body>
+<table>
+<thead>
+<tr>
+    <th>model name</th>
+    <th>samples seen</th>
+    <th>action</th>
+</tr>
+</thead>
+<tbody></tbody>
+{% for name, stats  in models %}
+    <tr>
+    <td>{{ name }}</td>
+    <td>{{ stats.samples_seen }}</td>
+    <td>
+    <form method="post" action="{% url 'load_bot' %}">
+        {% csrf_token %}
+        <input name="name" type="hidden" value="{{ name }}">
+        <button type="submit">load</button>
+    </form>
+    </td>
+    </tr>
+{% endfor %}
+</table>
+</body>
+</html>

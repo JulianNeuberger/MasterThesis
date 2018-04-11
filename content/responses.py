@@ -26,11 +26,14 @@ class ResponseFactory:
         }
         self._response_builders = {
             'common.hi': self._greeting,
+            'common.thanks': self._thanks,
+            'common.how_are_you': self._how_are_you,
             'response.player.news': self._content,
             'response.player.information.age': self._player_age,
             'response.player.information.height': self._player_height,
             'response.player.information.goals': self._player_goals,
-            'response.player.information.shoe': self._player_shoe
+            'response.player.information.shoe': self._player_shoe,
+            'offer.player.news': self._offer_content,
         }
         self._content_interface = SimpleContentInterface()
 
@@ -59,6 +62,14 @@ class ResponseFactory:
         template = self._get_template('common.hi')
         return template.substitute({'user_name': self._get_user_name()})
 
+    def _thanks(self):
+        template = self._get_template('common.thanks')
+        return template.substitute({'user_name': self._get_user_name()})
+
+    def _how_are_you(self):
+        template = self._get_template('common.how_are_you')
+        return template.substitute({'user_name': self._get_user_name()})
+
     def _content(self):
         template = self._get_template('response.player.news')
         player_name = self._get_requested_player_name()
@@ -70,28 +81,41 @@ class ResponseFactory:
             'content': content.url
         })
 
+    def _offer_content(self):
+        template = self._get_template('offer.player.news')
+        player_name = self._get_requested_player_name()
+        content_type = self._get_requested_content_type()
+        return template.substitute({
+            'player_name': player_name,
+            'content_type': content_type
+        })
+
     def _player_age(self):
         template = self._get_template('response.player.information.age')
         return template.substitute({
-            'player_name': self._get_requested_player_name()
+            'player_name': self._get_requested_player_name(),
+            'player_age': '## PLACEHOLDER: 28'
         })
 
     def _player_goals(self):
         template = self._get_template('response.player.information.goals')
         return template.substitute({
-            'player_name': self._get_requested_player_name()
+            'player_name': self._get_requested_player_name(),
+            'player_goals': '## PLACEHOLDER: 10'
         })
 
     def _player_height(self):
         template = self._get_template('response.player.information.height')
         return template.substitute({
-            'player_name': self._get_requested_player_name()
+            'player_name': self._get_requested_player_name(),
+            'player_height': '## PLACEHOLDER: 1,80m ##'
         })
 
     def _player_shoe(self):
         template = self._get_template('response.player.information.shoe')
         return template.substitute({
-            'player_name': self._get_requested_player_name()
+            'player_name': self._get_requested_player_name(),
+            'player_shoe': '## PLACEHOLDER: X17 ##'
         })
 
     def _get_template(self, intent_name):

@@ -301,9 +301,9 @@ def update_terminals_for_single_dialogue(dialogue: Dialogue, override=False, sav
                 logger.debug('There was no other message in this dialogue, setting "{}" to terminal'.format(sentence))
 
 
-def update_all_for_single_sentence(sentence: Sentence, save=True):
-    update_intent_for_single_sentence(sentence, True, save)
-    update_sentiment_for_single_sentence(sentence, True, save)
+def update_all_for_single_sentence(sentence: Sentence, save=True, override=False):
+    update_intent_for_single_sentence(sentence, override, save)
+    update_sentiment_for_single_sentence(sentence, override, save)
     return sentence
 
 

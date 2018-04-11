@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generate Fake Conversations</title>
+</head>
+<body>
+<h1>Generate Fake Conversations</h1>
+<form method="POST" action="{% url 'fake_conversations' %}">
+    {% csrf_token %}
+    <label>
+        User says:
+        <input type="text" name="user" required="required">
+    </label>
+    <label>
+        Bot answers:
+        <input type="text" name="bot" required="required">
+    </label>
+
+    <button type="submit">save</button>
+</form>
+</body>
+</html>

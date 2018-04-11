@@ -1,17 +1,22 @@
-from django.contrib.auth.models import User
 from django.core.exceptions import SuspiciousOperation
 from django.http import JsonResponse
+from django.shortcuts import redirect
+from django.template.response import TemplateResponse
+from django.views.decorators.http import require_http_methods
 
-from bot.bot import AbstractBot, DeepMindBot
+from bot.bot import AbstractBot
 from bot.listener import BotListener
 
-# TODO: FIXME: Get from database
-bot_user = User.objects.get(username='Chatbot')
-bot_listener = BotListener(bot_user)
+
+def start_bot(request):
+    return JsonResponse({
+        'success': True,
+        'errors': []
+    })
 
 
 def training_view(request):
-    success = bot_listener.bot.pre_train()
+    success = BotListener().bot.pre_train()
     response = {
         'success': success,
         'errors': []
@@ -20,7 +25,7 @@ def training_view(request):
 
 
 def save_model(request):
-    success = bot_listener.bot.save_weights()
+    success = BotListener().bot.save_weights()
     response = {
         'success': success,
         'errors': []
@@ -28,17 +33,26 @@ def save_model(request):
     return JsonResponse(response)
 
 
+@require_http_methods(['GET'])
 def list_models(request):
     models = AbstractBot.list_available_models()
-    response = {
-        'models': models
-    }
-    return JsonResponse(response)
+    if request.GET.get('json', default=False):
+        response = {
+            'models': models
+        }
+        return JsonResponse(response)
+    else:
+        context = {
+            'models': models
+        }
+        return TemplateResponse(context=context, request=request, template='bot/list-available.html')
 
 
+@require_http_methods(['POST'])
 def change_model(request):
     try:
         model_name = request.POST['name']
     except KeyError:
-        raise SuspiciousOperation("Change model view needs a name POST parameter (the model name), to change the model")
-    bot_listener.bot = AbstractBot()
+        raise SuspiciousOperation('Change model view needs a name POST parameter (the model name), to change the model')
+    BotListener().change_bot(model_name)
+    return redirect('list_models')

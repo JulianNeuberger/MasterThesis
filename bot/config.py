@@ -146,9 +146,9 @@ ACTION_SENTENCES = {
 
     'common.you_too': [Template('You too!')],
 
-    'offer.player.news': [Template('I can show you news about{ ${player_name}}!'),
-                          Template('Do you want to see news about{ ${player_name}}?'),
-                          Template('How about some news about{ ${player_name}}?')],
+    'offer.player.news': [Template('I can show you news{ about ${player_name}}!'),
+                          Template('Do you want to see news{ about ${player_name}}?'),
+                          Template('How about some news{ about ${player_name}}?')],
 
     'reaction.bad_you_didnt_like': [Template('Too bad you didn\'t like that...')],
 

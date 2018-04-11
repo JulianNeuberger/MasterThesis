@@ -12,5 +12,6 @@ urlpatterns = [
     url(r'^intents/load-from/dialogflow/(?P<access_token>[0-9a-f]+)$',
         views.load_intents_from_dialogflow,
         name='load_intents_dialogflow'),
-    url(r'^test/', name='test_data_crawler', view=views.direct_test)
+    url(r'^test/', name='test_data_crawler', view=views.direct_test),
+    url(r'^fake/', name='fake_conversations', view=views.fake_conversations)
 ]

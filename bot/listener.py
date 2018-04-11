@@ -2,6 +2,7 @@ import logging
 import time
 
 import numpy
+import tensorflow as tf
 from django.contrib.auth.models import User
 
 from bot.bot import DeepMindBot
@@ -19,11 +20,17 @@ logger = logging.getLogger('bot')
 
 
 class BotListener(metaclass=Singleton):
-    def __init__(self, bot_user):
-        self._bot_user = bot_user
-        self.bot = DeepMindBot(bot_user=self._bot_user, load_dir=None)
+    def __init__(self):
+        # TODO: FIXME: Get from database
+        self._bot_user = User.objects.get(username='Chatbot')
+        self.bot = DeepMindBot(bot_user=self._bot_user, load_dir='latest')
+        self._graph = tf.get_default_graph()
         self._response_factories = {}
         self._init_factories()
+
+    def change_bot(self, name):
+        with self._graph.as_default():
+            self.bot = DeepMindBot(bot_user=self._bot_user, load_dir=name)
 
     def on_message(self, sentence):
         assert isinstance(sentence, Sentence)

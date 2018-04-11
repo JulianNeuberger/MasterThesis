@@ -1,5 +1,7 @@
 import logging
+import time
 
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpRequest, HttpResponseBadRequest
 from django.template.response import TemplateResponse
 from django.views.decorators.http import require_http_methods
@@ -9,13 +11,42 @@ from turns.models import Sentence, Dialogue
 from turns.services import persist_intent_templates
 from turns.util import update_sentiment_for_all_sentences, update_intents_for_all_sentences, \
     update_user_profile_for_all_dialogues, update_reward_for_all_sentences, \
-    update_all_for_single_sentence, update_terminals_for_all_dialogues
+    update_all_for_single_sentence, update_terminals_for_all_dialogues, update_user_profile_for_single_dialogue
 
 logger = logging.getLogger('turns')
 
 
 def index(request):
     return TemplateResponse(request=request, context={}, template='turns/index.html')
+
+
+@login_required
+@require_http_methods(['POST', 'GET'])
+def fake_conversations(request):
+    if request.method == 'POST':
+        user_sentence = request.POST.get('user')
+        bot_sentence = request.POST.get('bot')
+        dialogue = Dialogue.objects.get(with_user=request.user.username)
+
+        user_sentence = Sentence.objects.create(value=user_sentence,
+                                                reward=0,
+                                                terminal=False,
+                                                said_by=request.user.username,
+                                                said_in=dialogue)
+        time.sleep(1)
+        bot_sentence = Sentence.objects.create(value=bot_sentence,
+                                               reward=1,
+                                               terminal=False,
+                                               said_by='Chatbot',
+                                               said_in=dialogue)
+
+        update_all_for_single_sentence(user_sentence, override=False, save=True)
+        update_all_for_single_sentence(bot_sentence, override=False, save=True)
+        update_user_profile_for_single_dialogue(dialogue)
+
+        return TemplateResponse(request=request, template='turns/fake.html')
+    else:
+        return TemplateResponse(request=request, template='turns/fake.html')
 
 
 @require_http_methods(['POST'])
@@ -29,8 +60,13 @@ def update_sentiments(request):
 @require_http_methods(['POST'])
 def update_intents(request):
     override = request.POST.get(key='override', default='')
+    last = request.POST.get(key='last', default=False)
     override = override.lower() in ('true', '1', 'on')
-    update_intents_for_all_sentences(override=override)
+    if last:
+        query_set = Sentence.objects.all().order_by('-said_on')[:int(last)]
+    else:
+        query_set = None
+    update_intents_for_all_sentences(override=override, query_set=query_set)
     return HttpResponse('Updated all intents')
 
 

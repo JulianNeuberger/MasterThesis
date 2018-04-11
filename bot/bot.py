@@ -3,7 +3,7 @@ import os
 import pickle
 from shutil import copyfile
 from threading import Lock
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 import numpy
 import tensorflow as tf
@@ -12,6 +12,7 @@ from keras.callbacks import TensorBoard
 from bot.callbacks import DiscountCallback, EpsilonCallback, TargetResetCallback
 from bot.exceptions import NoDataException
 from bot.neural_nets import get_deep_mind_model
+from config.models import Configuration
 from data.action import Action
 from data.context import Context
 from data.exceptions import IntentError
@@ -19,7 +20,6 @@ from data.state import State
 from data.transition import Transition
 from data.turn import Turn
 from turns.models import Sentence
-from config.models import Configuration
 
 logger = logging.getLogger("bot")
 
@@ -33,9 +33,9 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-class AbstractBot(metaclass=Singleton):
+class AbstractBot:
     """
-    A Singleton, that holds a keras model and can be trained, be queried and predict actions.
+    holds a keras model and can be trained, be queried and predict actions.
     The core of the chat bot.
     Extend this class to use your models and logic.
     """
@@ -102,11 +102,11 @@ class AbstractBot(metaclass=Singleton):
             'episodes_seen': 0,
             'samples_seen': 0
         }
-        self._graph = tf.get_default_graph()
 
         self._model_base_name = model_base_name
         self._init_model(load_dir)
         assert self._model is not None, 'Method _init_model has to set _model member!'
+        self._graph = tf.get_default_graph()
         self._init_callbacks()
         for callback in self._callbacks:
             callback.set_model(self._model)
@@ -232,7 +232,7 @@ class AbstractBot(metaclass=Singleton):
         return False
 
     @staticmethod
-    def list_available_models():
+    def list_available_models() -> List[Tuple[str, Optional[Dict[str, int]]]]:
         models = []
         for name in os.listdir(Configuration.get_active().weights_dir):
             stats = AbstractBot._load_stats_by_path(
@@ -366,11 +366,13 @@ class DeepMindBot(AbstractBot):
             model_name = '{}_v{:03d}'.format(self._model_base_name, model_number)
         else:
             model_name = load_model_dir
+
         self._model = get_deep_mind_model(name=model_name)
         self._target = get_deep_mind_model()
 
         # init target weights
-        self._target.set_weights(self._model.get_weights())
+        weights = self._model.get_weights()
+        self._target.set_weights(weights)
 
     def _init_callbacks(self):
         self._discount_callback = DiscountCallback()
