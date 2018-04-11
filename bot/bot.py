@@ -173,12 +173,16 @@ class AbstractBot:
         with self._graph.as_default():
             return self._prediction_to_action_name(self._model.predict(raw_input))
 
-    def pre_train(self, validate=True):
+    def pre_train(self, validate=True, max_episodes=False):
         logger.info('Starting to train on available episodes.')
         episodes_trained = 0
         while self.train(validate):
             episodes_trained += 1
-            pass
+            if max_episodes:
+                if episodes_trained < max_episodes:
+                    continue
+                else:
+                    break
         logger.info('Successfully trained on {} episodes.'.format(episodes_trained))
 
     def train(self, validate=True):
@@ -195,7 +199,7 @@ class AbstractBot:
                 episode_logs = {}
                 training_loss = 0
                 batches_trained = 0
-                logger.info('Bot training on episode #{}'.format(self.episodes_seen))
+                logger.info('Bot training on episode #{}'.format(self.episodes_seen + 1))
                 for step in range(0, Configuration.get_active().steps_per_episode):
                     num_samples, x, y = self._sample_batch(self.episodes_seen)
                     if num_samples > 0:
