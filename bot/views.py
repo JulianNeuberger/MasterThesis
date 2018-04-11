@@ -16,7 +16,8 @@ def start_bot(request):
 
 
 def training_view(request):
-    success = BotListener().bot.pre_train()
+    max_episodes = int(request.GET.get('episodes', default=False))
+    success = BotListener().bot.pre_train(max_episodes=max_episodes)
     response = {
         'success': success,
         'errors': []
