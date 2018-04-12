@@ -21,7 +21,7 @@ logger = logging.getLogger('bot')
 
 class BotListener(metaclass=Singleton):
     def __init__(self):
-        # TODO: FIXME: Get from database
+        # TODO: FIXME: Get from config objects in database
         self._bot_user = User.objects.get(username='Chatbot')
         self.bot = DeepMindBot(bot_user=self._bot_user, load_dir='latest')
         self._graph = tf.get_default_graph()
