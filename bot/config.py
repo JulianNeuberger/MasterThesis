@@ -1,6 +1,21 @@
+"""
+
+THIS FILE IS DEPRECATED
+
+I ONLY LEFT IT IN FOR REFERENCE
+
+USE THE CONFIGURATION MODULE 'config'
+
+"""
+
+
 import os
 
 from content.template import Template
+
+print('#####################################################################################')
+print('# You are using the deprecated config.py, use the configuration object in database! #')
+print('#####################################################################################')
 
 UNKNOWN_INTENT = 'common.unknown'
 INTENTS = [
