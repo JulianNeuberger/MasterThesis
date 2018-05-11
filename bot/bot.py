@@ -217,6 +217,9 @@ class AbstractBot:
                     num_samples, x, y = self._sample_batch(self.episodes_seen)
                     if num_samples > 0:
                         episode_logs['val_loss'] = self._model.test_on_batch(x, y)
+                        episode_logs['est_value'] = self._model.predict_on_batch(x)
+                        episode_logs['est_value'] = episode_logs['est_value'].sum() / num_samples
+                        episode_logs['true_value'] = y['quality_output'].sum() / num_samples
                 self.episodes_seen += 1
                 self._save_stats()
                 self._save_weights()
@@ -483,6 +486,165 @@ class DeepMindBot(AbstractBot):
 
     def _can_sample_batch(self, episode_number) -> bool:
         start, stop = DeepMindBot._episode_to_range(episode_number)
+        try:
+            return Sentence.has_episode(start, stop)
+        except NoDataException:
+            return False
+
+    @staticmethod
+    def _episode_to_range(episode_number) -> Tuple[int, int]:
+        num_sentences = Sentence.objects.count()
+        if num_sentences == 0:
+            raise NoDataException
+        start = episode_number * Configuration.get_active().episode_size
+        end = (episode_number + 1) * Configuration.get_active().episode_size
+        if episode_number < 0:
+            start += num_sentences
+            end += num_sentences
+        return start, end
+
+    def _prediction_to_action_name(self, prediction: numpy.ndarray) -> str:
+        prediction = prediction[0]
+        return list(Configuration.get_active().action_intents.all())[prediction.argmax()].name
+
+
+class SimpleBot(AbstractBot):
+    def __init__(self, bot_user, load_dir=None):
+        super().__init__(model_base_name='deep_mind_model', load_dir=load_dir)
+        self._bot_user = bot_user
+
+    def _init_model(self, load_model_dir=None):
+        """
+        Initializes a DeepMind inspired model. Use the load_model_dir parameter to load a previously
+        trained model.
+
+        :param load_model_dir: directory of a previously trained and saved model, leave None if you want a fresh one
+         use 'latest' for the last trained model with the given base name
+        """
+        if not os.path.isdir(Configuration.get_active().log_dir):
+            os.makedirs(Configuration.get_active().log_dir)
+        num_models = len([name for name in os.listdir(Configuration.get_active().log_dir) if
+                          os.path.isdir(os.path.join(Configuration.get_active().log_dir,
+                                                     name)) and self._model_base_name in name])
+        if load_model_dir == 'latest':
+            model_number = num_models - 1
+            model_name = '{}_v{:03d}'.format(self._model_base_name, model_number)
+        elif load_model_dir is None:
+            model_number = num_models
+            model_name = '{}_v{:03d}'.format(self._model_base_name, model_number)
+        else:
+            model_name = load_model_dir
+
+        self._model = get_deep_mind_model(name=model_name)
+        self._target = get_deep_mind_model()
+
+        # init target weights
+        weights = self._model.get_weights()
+        self._target.set_weights(weights)
+
+    def _init_callbacks(self):
+        self._discount_callback = DiscountCallback()
+        self._epsilon_callback = EpsilonCallback()
+        super()._init_callbacks()
+        self._callbacks.extend([
+            self._epsilon_callback,
+            self._discount_callback,
+            TargetResetCallback(self._model, self._target)
+        ])
+
+    def _on_weights_loaded(self):
+        self._target.load_weights(self.model_weight_file)
+
+    @property
+    def discount(self):
+        return self._discount_callback.value
+
+    @property
+    def epsilon(self):
+        return self._epsilon_callback.value
+
+    def _sample_batch(self, episode_number) -> Tuple[int, Dict, Dict]:
+        start, stop = SimpleBot._episode_to_range(episode_number)
+        sentences = Sentence.objects.order_by('-said_on').all[start, stop]
+        transitions = []
+        for sentence in sentences:
+            context_sentences = []
+            while len(context_sentences) < 4:
+                assert sentence.said_by == self._bot_user.username
+                context_sentences = Sentence.objects.filter(
+                    said_in=sentence.said_in
+                ).filter(
+                    said_on__lte=sentence.said_on
+                ).order_by(
+                    '-said_on'
+                )[:Configuration.get_active().context_length * 2 + 4]
+                context_sentences = list(reversed(context_sentences))
+                if len(context_sentences) < 4:
+                    # re-sample, since this sample has not enough context
+                    sentence = Sentence.sample_sentence_in_range(self._bot_user.username, start, stop)
+            try:
+                a1 = Action(context_sentences.pop())
+                s1 = State(context_sentences.pop())
+                turns = Turn.sentences_to_turns(context_sentences, self._bot_user)
+                # context turns list should only be CONTEXT_LENGTH long
+                raw_context_t1 = turns[0:Configuration.get_active().context_length]
+                context_t1 = Context.get_single_context(raw_context_t1, Configuration.get_active().context_length)
+
+                a0 = Action(context_sentences.pop())
+                s0 = State(context_sentences.pop())
+                turns = Turn.sentences_to_turns(context_sentences, self._bot_user)
+                context_t0 = Context.get_single_context(turns, Configuration.get_active().context_length)
+            except IntentError as e:
+                logger.error('Error occurred while processing sampled sentence {}. See below.'.format(sentence))
+                raise e
+
+            transition = Transition(s0, a0, context_t0, s1, a1, context_t1)
+            transitions.append(transition)
+        if len(transitions) < Configuration.get_active().batch_size:
+            return 0, {}, {}
+
+        assert len(transitions) == Configuration.get_active().batch_size
+
+        actions = [transition.action_t0 for transition in transitions]
+        states = numpy.array([transition.state_t0.as_vector() for transition in transitions])
+        contexts = numpy.array([transition.context_t0.as_matrix() for transition in transitions])
+        future_states = numpy.array([transition.state_t1.as_vector() for transition in transitions])
+        future_contexts = numpy.array([transition.context_t1.as_matrix() for transition in transitions])
+        terminals = numpy.array([0 if transition.terminal else 1 for transition in transitions])
+        rewards = numpy.array([transition.action_t0.reward for transition in transitions])
+
+        assert future_states.shape == (Configuration.get_active().batch_size,) + Configuration.get_active().state_shape
+        assert contexts.shape == (Configuration.get_active().batch_size,) + Configuration.get_active().context_shape
+        assert rewards.shape == (Configuration.get_active().batch_size,)
+
+        target_quality = self._target.predict({
+            'state_input': future_states,
+            'context_input': future_contexts
+        })
+        assert target_quality.shape == (
+            Configuration.get_active().batch_size, Configuration.get_active().number_actions
+        )
+        quality_batch = target_quality.max(axis=1).flatten()
+        quality_batch *= self.discount
+        quality_batch *= terminals
+        logger.debug("Future qualities are {}".format(quality_batch))
+        logger.debug('Rewards are {}'.format(rewards))
+        quality_batch = rewards + quality_batch
+
+        logger.debug("Working with qualities {}".format(quality_batch))
+
+        target_quality = numpy.zeros((Configuration.get_active().batch_size, Configuration.get_active().number_actions))
+        for target, action, quality in zip(target_quality, actions, quality_batch):
+            target[action.intent_index] = quality
+
+        return (
+            len(states),
+            {'state_input': states, 'context_input': contexts},
+            {'quality_output': target_quality}
+        )
+
+    def _can_sample_batch(self, episode_number) -> bool:
+        start, stop = SimpleBot._episode_to_range(episode_number)
         try:
             return Sentence.has_episode(start, stop)
         except NoDataException:
