@@ -1,8 +1,11 @@
 import logging
 from random import randint
 
+from django.core.exceptions import ObjectDoesNotExist
+
 from config.models import Configuration
 from content.content import SimpleContentInterface
+from turns.models import Player
 
 logger = logging.getLogger('content')
 
@@ -94,28 +97,28 @@ class ResponseFactory:
         template = self._get_template('response.player.information.age')
         return template.substitute({
             'player_name': self._get_requested_player_name(),
-            'player_age': '## PLACEHOLDER: 28'
+            'player_age': self._get_requested_player().age
         })
 
     def _player_goals(self):
         template = self._get_template('response.player.information.goals')
         return template.substitute({
             'player_name': self._get_requested_player_name(),
-            'player_goals': '## PLACEHOLDER: 10'
+            'player_goals': self._get_requested_player().goals
         })
 
     def _player_height(self):
         template = self._get_template('response.player.information.height')
         return template.substitute({
             'player_name': self._get_requested_player_name(),
-            'player_height': '## PLACEHOLDER: 1,80m ##'
+            'player_height': self._get_requested_player().height
         })
 
     def _player_shoe(self):
         template = self._get_template('response.player.information.shoe')
         return template.substitute({
             'player_name': self._get_requested_player_name(),
-            'player_shoe': '## PLACEHOLDER: X17 ##'
+            'player_shoe': self._get_requested_player().shoes.name
         })
 
     def _get_template(self, intent_name):
@@ -131,6 +134,12 @@ class ResponseFactory:
 
     def _get_requested_player_name(self):
         return self._context.get('player', None)
+
+    def _get_requested_player(self):
+        try:
+            return Player.objects.get(name=self._get_requested_player_name())
+        except ObjectDoesNotExist:
+            return None
 
     def _get_requested_content_type(self):
         return self._context.get('content-type', None)
