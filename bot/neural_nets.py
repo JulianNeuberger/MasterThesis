@@ -132,6 +132,25 @@ def get_deep_mind_model(name=None) -> Model:
     return model
 
 
+def get_deep_mind_model_no_context(name=None) -> Model:
+    state_input = Input(name='state_input', shape=Configuration.get_active().state_shape)
+    context_input = Input(name='context_input', shape=Configuration.get_active().context_shape)
+
+    # cxt = Flatten()(context_input)
+
+    #x = Concatenate()([state_input, cxt])
+
+    x = Dense(units=128)(state_input)
+    x = Dense(units=128)(x)
+    x = Dense(units=128)(x)
+
+    output_layer = Dense(units=Configuration.get_active().number_actions, activation='linear', name='quality_output')(x)
+
+    model = Model(name=name, inputs=[state_input, context_input], outputs=[output_layer])
+    model.compile('adam', 'mse')
+    return model
+
+
 def get_simple_model(name=None) -> Model:
     state = Input(name='state_input', shape=Configuration.get_active().state_shape)
     action = Input(name='action_input', shape=(Configuration.get_active().number_actions,))

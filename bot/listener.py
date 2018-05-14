@@ -5,7 +5,7 @@ import numpy
 import tensorflow as tf
 from django.contrib.auth.models import User
 
-from bot.bot import DeepMindBot
+from bot.bot import DeepMindBot, SimpleBot, DeepMindNoContextBot
 from chat.events import Singleton
 from chat.models import Message, Chat
 from config.models import Configuration
@@ -23,7 +23,7 @@ class BotListener(metaclass=Singleton):
     def __init__(self):
         # TODO: FIXME: Get from config objects in database
         self._bot_user = User.objects.get(username='Chatbot')
-        self.bot = DeepMindBot(bot_user=self._bot_user, load_dir=None)
+        self.bot = DeepMindNoContextBot(bot_user=self._bot_user, load_dir=None)
         self._graph = tf.get_default_graph()
         self._response_factories = {}
         self._init_factories()
@@ -60,7 +60,8 @@ class BotListener(metaclass=Singleton):
                                            said_by=self._bot_user,
                                            raw_sentence=message,
                                            intent=intent,
-                                           sentiment=0)
+                                           sentiment=0,
+                                           created_by=self.bot.model_base_name)
         update_user_profile_for_single_dialogue(response.said_in)
         response.refresh_from_db()
 
