@@ -25,6 +25,7 @@ urlpatterns = [
     url(r'^turns/', include('turns.urls')),
     url(r'^chat/', include('chat.urls')),
     url(r'^bot/', include('bot.urls')),
+    url(r'^user/', include('user.urls')),
 
     url(r'^accounts/login/$', auth_views.login, name='login'),
     url(r'^accounts/logout/$', auth_views.logout, name='logout'),

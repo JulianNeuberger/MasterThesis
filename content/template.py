@@ -45,6 +45,6 @@ class Template:
             value = replacements.get(keyword, None)
             replacement = ''
             if value is not None:
-                replacement = replacement.join((prefix, value, postfix))
+                replacement = replacement.join((prefix, str(value), postfix))
             ret = Template._regex.sub(replacement, ret, count=1)
         return ret

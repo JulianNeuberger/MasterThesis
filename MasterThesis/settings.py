@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'bot.apps.BotConfig',
     'turns.apps.TurnsConfig',
     'content.apps.ContentConfig',
+    'user.apps.UserConfig',
 ]
 
 MIDDLEWARE = [
