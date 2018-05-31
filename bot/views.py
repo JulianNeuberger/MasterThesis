@@ -57,3 +57,21 @@ def change_model(request):
         raise SuspiciousOperation('Change model view needs a name POST parameter (the model name), to change the model')
     BotListener().change_bot(model_name)
     return redirect('list_models')
+
+
+def lock_bot(request):
+    BotListener().bot.training_allowed = False
+    response = {
+        'success': True,
+        'errors': []
+    }
+    return JsonResponse(response)
+
+
+def unlock_bot(request):
+    BotListener().bot.training_allowed = True
+    response = {
+        'success': True,
+        'errors': []
+    }
+    return JsonResponse(response)

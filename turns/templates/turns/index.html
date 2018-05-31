@@ -15,10 +15,17 @@
     <label>
         Last
         <input type="number" name="last">
-         sentences
+        sentences
     </label>
     <button type="submit">Update intents!</button>
 </form>
+
+<div>
+    <form method="post" action="/turns/intents/load-from/dialogflow/91f867c85e574b7cb1021d21b9319c55">
+        {% csrf_token %}
+        <button type="submit">Load Dialogflow intent templates!</button>
+    </form>
+</div>
 
 <h1>User profiles</h1>
 <form method="post" action="{% url 'update_profiles' %}">
@@ -30,7 +37,7 @@
     <label>
         Last
         <input type="number" name="last">
-         sentences
+        sentences
     </label>
     <button type="submit">Update intents!</button>
 </form>
@@ -45,7 +52,7 @@
     <label>
         Last
         <input type="number" name="last">
-         sentences
+        sentences
     </label>
     <button type="submit">Update sentiments!</button>
 </form>

@@ -60,6 +60,7 @@ class Configuration(models.Model):
     batch_size = models.IntegerField(default=10)
     episode_size = models.IntegerField(default=50)
     test_ratio = models.DecimalField(max_digits=10, decimal_places=9, default=.1)
+    steps_per_episode = models.IntegerField(default=5)
 
     seconds_for_terminal = models.IntegerField(default=60)
 
@@ -92,10 +93,6 @@ class Configuration(models.Model):
     @property
     def context_shape(self) -> Tuple[int, int]:
         return (self.context_length,) + (self.state_shape[0] + self.number_actions,)
-
-    @property
-    def steps_per_episode(self):
-        return int(self.episode_size / self.batch_size)
 
     @property
     def seconds_per_day(self):
@@ -145,5 +142,5 @@ class Configuration(models.Model):
             # cannot access db or table does not exist
             # happens, if you install app for the first time and want to migrate
             # in this case config isn't needed, create empty object, don't persist it
-            config = Configuration()
+            config = Configuration(id=0)
         return config

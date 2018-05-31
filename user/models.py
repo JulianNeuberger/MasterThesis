@@ -17,6 +17,9 @@ class UserProfile(models.Model):
         ('CS', 'computer sciences'),
         ('LA', 'law'),
         ('EC', 'economics'),
+        ('MA', 'mathematics'),
+        ('ES', 'educational studies'),
+        ('EN', 'engineer')
     )
 
     age = models.IntegerField()

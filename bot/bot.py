@@ -103,6 +103,7 @@ class AbstractBot:
             'samples_seen': 0
         }
 
+        self.training_allowed = False
         self.model_base_name = model_base_name
         self._init_model(load_dir)
         assert self._model is not None, 'Method _init_model has to set _model member!'
@@ -185,11 +186,19 @@ class AbstractBot:
                     break
         logger.info('Successfully trained on {} episodes.'.format(episodes_trained))
 
+    def lock(self):
+        self.training_allowed = False
+
+    def unlock(self):
+        self.training_allowed = True
+
     def train(self, validate=True):
         """Trains for a single episode
 
         :return: a bool indicating whether or not training was possible and successful.
         """
+        if not self.training_allowed:
+            return False
         logger.debug('Acquiring lock...')
         with self._training_lock:
             if not self._can_sample_batch(self.episodes_seen):
