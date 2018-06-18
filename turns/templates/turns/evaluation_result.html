@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Evaluation results</title>
+</head>
+<body>
+<h1>Generate Fake Conversations</h1>
+<table>
+    <tbody>
+    {% for dialogue, score in values.items %}
+        <tr>
+            <td>
+                {{ dialogue.with_user }}
+            </td>
+            <td>
+                {{ score }}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</body>
+</html>

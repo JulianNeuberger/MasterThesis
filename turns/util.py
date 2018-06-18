@@ -5,6 +5,7 @@ from typing import Any, Callable
 
 from bs4 import BeautifulSoup
 from requests import post
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 import dialogflow
 from config.models import Configuration
@@ -46,8 +47,8 @@ def _update_sentence_generic(update_method: Callable[[Sentence, bool], Any],
     for sentence in query_set:
         if override or sentence.sentiment is None:
             new_val = update_method(sentence, override)
-            logger.debug("New {} for sentence '{}' is {}".format(field_name,
-                                                                 sentence.value,
+            logger.debug("New {} for sentence {} is {}".format(field_name,
+                                                                 sentence,
                                                                  new_val))
             touched += 1
         else:
@@ -68,26 +69,15 @@ def update_sentiment_for_single_sentence(sentence, override=False, save=True):
     return sentence.sentiment
 
 
+analyser = SentimentIntensityAnalyzer()
+
+
 def crawl_single_sentiment(text):
-    response = post('http://text-processing.com/demo/sentiment/',
-                    data={
-                        'language': 'english',
-                        'text': text
-                    })
-    parsed = BeautifulSoup(response.text, 'lxml')
-    polarity = parsed.find_all('h5')
-    if len(polarity) == 1:
-        # neutral
-        return 0
-    else:
-        parsed = polarity[1]
-        parsed = parsed.find_next('ul')
-        positive = str(parsed.find('li', attrs={'class': 'positive'}).contents[0])
-        positive = re.findall('\d+\.\d+', positive)[0]
-        negative = str(parsed.find('li', attrs={'class': 'negative'}).contents[0])
-        negative = re.findall('\d+\.\d+', negative)[0]
-        sentiment = float(positive) - float(negative)
-        return sentiment
+    polarity = analyser.polarity_scores(text)
+    positive = polarity['pos']
+    negative = polarity['neg']
+    sentiment = float(positive) - float(negative)
+    return sentiment
 
 
 ACCESS_TOKEN = '91f867c85e574b7cb1021d21b9319c55'

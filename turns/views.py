@@ -4,6 +4,7 @@ import time
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpRequest, HttpResponseBadRequest
 from django.template.response import TemplateResponse
+from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_http_methods
 
 from dialogflow import Intents
@@ -52,7 +53,7 @@ def fake_conversations(request):
 @require_http_methods(['POST'])
 def update_sentiments(request):
     override = request.POST.get(key='override', default='')
-    override = override.lower() in ('true', '1')
+    override = override.lower() in ('true', '1', 'on')
     update_sentiment_for_all_sentences(override=override)
     return HttpResponse('Updated all sentiments')
 
@@ -119,5 +120,38 @@ def direct_test(request: HttpRequest):
         return TemplateResponse(request=request, template='turns/breakdown.html', context=context)
     elif request.method == 'GET':
         return TemplateResponse(request=request, template='turns/breakdown.html', context={})
+    else:
+        return HttpResponseBadRequest(reason='Only GET and POST allowed.')
+
+
+def evaluation(request: HttpRequest):
+    if request.method == 'POST':
+        all_dialogues = Dialogue.objects.all()
+        dialogue_ids = [int(id) for id in request.POST.getlist('ids')]
+        starts = request.POST.getlist('starts')
+        stops = request.POST.getlist('stops')
+        result = {}
+        for dialogue, start, stop in zip(all_dialogues, starts, stops):
+            if dialogue.id in dialogue_ids:
+                start = parse_datetime(start)
+                stop = parse_datetime(stop)
+                sentences = Sentence.objects.exclude(reward=0.6).filter(said_in=dialogue,
+                                                                        said_by='Chatbot',
+                                                                        said_on__gte=start,
+                                                                        said_on__lte=stop)
+                if len(sentences) > 0:
+                    reward_sum = 0
+                    for sentence in sentences:
+                        reward_sum += sentence.reward
+                    result[dialogue] = reward_sum / len(sentences)
+                else:
+                    result[dialogue] = float('nan')
+        return TemplateResponse(request=request, template='turns/evaluation_result.html', context={'values': result})
+    elif request.method == 'GET':
+        dialogues = Dialogue.objects.all()
+        context = {
+            'dialogues': dialogues
+        }
+        return TemplateResponse(request=request, template='turns/evaluation.html', context=context)
     else:
         return HttpResponseBadRequest(reason='Only GET and POST allowed.')

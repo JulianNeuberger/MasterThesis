@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Evaluate conversations</title>
+</head>
+<body>
+<h1>Generate Fake Conversations</h1>
+<form method="POST" action="{% url 'evaluate' %}">
+    {% csrf_token %}
+    <table>
+        <thead>
+        <tr>
+            <th>
+                Use
+            </th>
+            <th>
+                Username
+            </th>
+            <th>
+                Start
+            </th>
+            <th>
+                Stop
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for dialogue in dialogues %}
+            <tr>
+            <td>
+                <input type="checkbox" name="ids" value="{{ dialogue.id }}">
+            </td>
+            <td>
+                {{ dialogue.with_user }}
+            </td>
+            <td>
+                <input type="text" name="starts" value="{{ dialogue.held_on|date:'Y-m-d H:i' }}">
+            </td>
+            <td>
+                <input type="text" name="stops" value="{{ dialogue.held_on|date:'Y-m-d H:i' }}">
+            </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit">evaluate</button>
+</form>
+</body>
+</html>
